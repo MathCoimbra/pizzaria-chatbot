@@ -27,38 +27,18 @@ export class ChatbotService {
         const options = body.entry[0].changes[0].value.messages[0].interactive;
         console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
 
-        const userKey = `user${from}:firstInteraction`;
-        const userItemsQuantityKey = `user${from}:itemsChoice`;
-        const userPizzaQuantityKey = `user${from}:pizzaChoice`;
-        const userFogazzaQuantityKey = `user${from}:fogazzaChoice`;
-        const userExtraChoiceKey = `user${from}:extraChoice`;
-        console.log("userKey:::", userKey);
-        console.log("userItemsQuantityKey:::", userItemsQuantityKey);
-        console.log("userPizzaQuantityKey:::", userPizzaQuantityKey);
-        console.log("userFogazzaQuantityKey:::", userFogazzaQuantityKey);
-        console.log("extraChoice:::", userExtraChoiceKey);
-
-        const hasInteracted = await redisClient.get(userKey); // Verifica se o usuário já interagiu
-        const itemsQuantity = await redisClient.get(userItemsQuantityKey); // Verifica a quantidade de itens
-        const pizzaQuantity = await redisClient.get(userPizzaQuantityKey); // Verifica a quantidade de pizzas
-        const fogazzaQuantity = await redisClient.get(userFogazzaQuantityKey); // Verifica a quantidade de fogazzas
-        const extraChoice = await redisClient.get(userExtraChoiceKey); // Verifica se o extra foi escolhido
+        const userStateKey = `user${from}:state`;
+        const userState = await redisClient.get(userStateKey);
 
         // verifica se é a primeira interação do usuário
-        if (!hasInteracted) {
-          // se não inclui, então inclui como a primeira interação 
-          await redisClient.set(userKey, "true", 'EX', 86400);
-          // e manda mensagem de boas vindas
+        if (!userState) {
+          await redisClient.set(userStateKey, "CHOOSE_ITEM", 'EX', 86400);
+
           await WhatsappService.sendMessage(WhatsappService.mountItemChoiceMessage(from, this.welcomeMessage(name)));
           res.status(200).send('Mensagem de boas-vindas enviada com sucesso!');
-          return;
+        } else {
+          await this.handleUserState(userState, from, options, userStateKey, res);
         }
-
-        if (!itemsQuantity) {
-          const quantityMessage = this.getQuantityMessage(options, pizzaQuantity || '', fogazzaQuantity || '', userPizzaQuantityKey || "", userFogazzaQuantityKey || "");
-          await WhatsappService.sendMessage(WhatsappService.mountQuantityMessage(from, quantityMessage, options, pizzaQuantity || '', fogazzaQuantity || ''));
-        }
-
       }
     } catch (error: any) {
       console.error('Erro ao enviar a mensagem: ', error.response?.data || error.message);
@@ -66,19 +46,36 @@ export class ChatbotService {
     }
   }
 
-  static getQuantityMessage(idItem: { button_reply: { id: string; }; }, pizzaQuantity: string, fogazzaQuantity: string, userPizzaQuantityKey: string, userFogazzaQuantityKey: string): string {
-    if (!pizzaQuantity) {
-      if (idItem.button_reply.id.toUpperCase() === "PIZZA-ID" || idItem.button_reply.id.toUpperCase() === "PIZZAFOGAZZA-ID") {
-        redisClient.set(userPizzaQuantityKey, "true", 'EX', 86400);
+  static async handleUserState(userState: string, from: string, options: any, userStateKey: string, res: Response): Promise<void> {
+    if (userState === "CHOOSE_ITEM" || userState === "PIZZA_QUANTITY" || userState === "FOGAZZA_QUANTITY" || userState === "PIZZA_FOGAZZA_QUANTITY") {
+      const quantityMessage = this.getQuantityMessage(options, userState, userStateKey);
+
+      await WhatsappService.sendMessage(WhatsappService.mountQuantityMessage(from, quantityMessage, userState));
+      res.status(200).send('Mensagem enviada com sucesso!');
+    }
+  }
+
+  static getQuantityMessage(idItem: { button_reply: { id: string; }; }, userState: string, userStateKey: string): string {
+    if (userState === "CHOOSE_ITEM") {
+      if (idItem?.button_reply?.id?.toUpperCase() === "PIZZA-ID") {
+        redisClient.set(userStateKey, "PIZZA_QUANTITY", 'EX', 86400);
+        return "Quantas pizzas deseja pedir?";
+      }
+      if (idItem?.button_reply?.id?.toUpperCase() === "FOGAZZA-ID") {
+        redisClient.set(userStateKey, "FOGAZZA_QUANTITY", 'EX', 86400);
+        return `Quantas fogazzas deseja pedir?`;
+      }
+      if (idItem?.button_reply?.id?.toUpperCase() === "PIZZAFOGAZZA-ID") {
+        redisClient.set(userStateKey, "PIZZA_FOGAZZA_QUANTITY", 'EX', 86400);
         return "Quantas pizzas deseja pedir?";
       }
     }
-    if (!fogazzaQuantity) {
-      if (idItem.button_reply.id.toUpperCase() === "FOGAZZA-ID" || idItem.button_reply.id.toUpperCase() === "PIZZAFOGAZZA-ID") {
-        redisClient.set(userFogazzaQuantityKey, "true", 'EX', 86400);
-        return `Quantas fogazzas deseja pedir?`;
-      }
+
+    if (userState === "PIZZA_FOGAZZA_QUANTITY") {
+      redisClient.set(userStateKey, "A DEFINIR", 'EX', 86400);
+      return "Quantas fogazzas deseja pedir?";
     }
+
     return 'Não entendi sua solicitação, por favor selecione uma das opções 🙂';
   }
 

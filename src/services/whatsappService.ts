@@ -52,7 +52,7 @@ export class WhatsappService {
     };
   }
 
-  static mountQuantityMessage(to: string, text: string, idItem: { button_reply: { id: string; }; }, pizzaQuantity: string, fogazzaQuantity: string): WhatsAppMessage {
+  static mountQuantityMessage(to: string, text: string, userState: string ): WhatsAppMessage {
 
     const message = {
       messaging_product: 'whatsapp',
@@ -62,7 +62,7 @@ export class WhatsappService {
         type: "list",
         header: {
           type: "text",
-          text: "Selecione as quantidades"
+          text: "Selecione a quantidade"
         },
         body: {
           text,
@@ -77,33 +77,30 @@ export class WhatsappService {
       }
     };
 
-    if (!pizzaQuantity) {
-      if (idItem.button_reply.id.toUpperCase() === "PIZZA-ID" || idItem.button_reply.id.toUpperCase() === "PIZZAFOGAZZA-ID") {
-        message.interactive.action.sections.push({
-          title: "Pizza",
-          rows: [
-            { id: "pizza_1", title: "1 Pizza" },
-            { id: "pizza_2", title: "2 Pizzas" },
-            { id: "pizza_3", title: "3 Pizzas" },
-            { id: "pizza_4", title: "4 Pizzas" },
-            { id: "pizza_5", title: "5 Pizzas" }
-          ]
-        });
-      }
+    if (userState.toUpperCase() === "CHOOSE_ITEM") {
+      message.interactive.action.sections.push({
+        title: "Pizza",
+        rows: [
+          { id: "pizza_1", title: "1 Pizza" },
+          { id: "pizza_2", title: "2 Pizzas" },
+          { id: "pizza_3", title: "3 Pizzas" },
+          { id: "pizza_4", title: "4 Pizzas" },
+          { id: "pizza_5", title: "5 Pizzas" }
+        ]
+      });
+
       return message;
     }
-    if (!fogazzaQuantity) {
-      if (idItem.button_reply.id.toUpperCase() === "FOGAZZA-ID" || idItem.button_reply.id.toUpperCase() === "PIZZAFOGAZZA-ID") {
-        message.interactive.action.sections.push({
-          title: "Fogazza",
-          rows: [
-            { id: "fogazza_1", title: "1 Fogazza" },
-            { id: "fogazza_2", title: "2 Fogazzas" },
-            { id: "fogazza_3", title: "3 Fogazzas" },
-            { id: "fogazza_4", title: "4 Fogazzas" },
-            { id: "fogazza_5", title: "5 Fogazzas" }]
-        });
-      }
+    if (userState.toUpperCase() === "FOGAZZA_QUANTITY" || userState.toUpperCase() === "PIZZA_FOGAZZA_QUANTITY") {
+      message.interactive.action.sections.push({
+        title: "Fogazza",
+        rows: [
+          { id: "fogazza_1", title: "1 Fogazza" },
+          { id: "fogazza_2", title: "2 Fogazzas" },
+          { id: "fogazza_3", title: "3 Fogazzas" },
+          { id: "fogazza_4", title: "4 Fogazzas" },
+          { id: "fogazza_5", title: "5 Fogazzas" }]
+      });
       return message;
     }
     return message;
