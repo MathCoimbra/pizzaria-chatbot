@@ -22,6 +22,11 @@ export type Message = {
   timestamp: string;
   text: Text;
   type: string;
+  interactive: {
+    button_reply: {
+      id: string;
+    };
+  };
 };
 
 export type Change = {
@@ -42,4 +47,14 @@ export type Entry = {
 export type WhatsAppWebhookEvent = {
   object: string;
   entry: Entry[];
+};
+
+export type WhatsAppMessage = {
+  messaging_product: string,
+  to: string;
+  type: string;
+  text?: {
+    body?: string;
+  },
+  interactive?: object;
 };

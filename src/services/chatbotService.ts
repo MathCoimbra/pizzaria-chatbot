@@ -22,28 +22,43 @@ export class ChatbotService {
         res.sendStatus(200);
       } else {
         const from = body.entry[0].changes[0].value.messages[0].from;
-        const text = body.entry[0].changes[0].value.messages[0].text.body;
+        const userText = body.entry[0].changes[0].value.messages[0].text?.body;
         const name = body.entry[0].changes[0].value.contacts[0].profile.name;
-        console.log(`Mensagem recebida de ${name} com a mensagem: ${text}`);
+        const options = body.entry[0].changes[0].value.messages[0].interactive;
+        console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
 
         const userKey = `user${from}:firstInteraction`;
-        const hasInteracted = await redisClient.get(userKey);
-        console.log("userKey:::", userKey)
+        const userItemsQuantityKey = `user${from}:itemsChoice`;
+        const userPizzaQuantityKey = `user${from}:pizzaChoice`;
+        const userFogazzaQuantityKey = `user${from}:fogazzaChoice`;
+        const userExtraChoiceKey = `user${from}:extraChoice`;
+        console.log("userKey:::", userKey);
+        console.log("userItemsQuantityKey:::", userItemsQuantityKey);
+        console.log("userPizzaQuantityKey:::", userPizzaQuantityKey);
+        console.log("userFogazzaQuantityKey:::", userFogazzaQuantityKey);
+        console.log("extraChoice:::", userExtraChoiceKey);
+
+        const hasInteracted = await redisClient.get(userKey); // Verifica se o usuário já interagiu
+        const itemsQuantity = await redisClient.get(userItemsQuantityKey); // Verifica a quantidade de itens
+        const pizzaQuantity = await redisClient.get(userPizzaQuantityKey); // Verifica a quantidade de pizzas
+        const fogazzaQuantity = await redisClient.get(userFogazzaQuantityKey); // Verifica a quantidade de fogazzas
+        const extraChoice = await redisClient.get(userExtraChoiceKey); // Verifica se o extra foi escolhido
 
         // verifica se é a primeira interação do usuário
         if (!hasInteracted) {
           // se não inclui, então inclui como a primeira interação 
           await redisClient.set(userKey, "true", 'EX', 86400);
           // e manda mensagem de boas vindas
-          await WhatsappService.sendMessage(from, this.welcomeMessage());
+          await WhatsappService.sendMessage(WhatsappService.mountItemChoiceMessage(from, this.welcomeMessage(name)));
           res.status(200).send('Mensagem de boas-vindas enviada com sucesso!');
           return;
         }
 
-        const reply = this.getResponse(text, name);
+        if (!itemsQuantity) {
+          const quantityMessage = this.getQuantityMessage(options, pizzaQuantity || '', fogazzaQuantity || '', userPizzaQuantityKey || "", userFogazzaQuantityKey || "");
+          await WhatsappService.sendMessage(WhatsappService.mountQuantityMessage(from, quantityMessage, options, pizzaQuantity || '', fogazzaQuantity || ''));
+        }
 
-        await WhatsappService.sendMessage(from, reply);
-        res.status(200).send('Resposta enviada com sucesso!');
       }
     } catch (error: any) {
       console.error('Erro ao enviar a mensagem: ', error.response?.data || error.message);
@@ -51,16 +66,48 @@ export class ChatbotService {
     }
   }
 
-  static getResponse(message: string, name: string): string {
+  static getQuantityMessage(idItem: { button_reply: { id: string; }; }, pizzaQuantity: string, fogazzaQuantity: string, userPizzaQuantityKey: string, userFogazzaQuantityKey: string): string {
+    if (!pizzaQuantity) {
+      if (idItem.button_reply.id.toUpperCase() === "PIZZA-ID" || idItem.button_reply.id.toUpperCase() === "PIZZAFOGAZZA-ID") {
+        redisClient.set(userPizzaQuantityKey, "true", 'EX', 86400);
+        return "Quantas pizzas deseja pedir?";
+      }
+    }
+    if (!fogazzaQuantity) {
+      if (idItem.button_reply.id.toUpperCase() === "FOGAZZA-ID" || idItem.button_reply.id.toUpperCase() === "PIZZAFOGAZZA-ID") {
+        redisClient.set(userFogazzaQuantityKey, "true", 'EX', 86400);
+        return `Quantas fogazzas deseja pedir?`;
+      }
+    }
+    return 'Não entendi sua solicitação, por favor selecione uma das opções 🙂';
+  }
 
+  static getExtraResponse(message: string, name: string): string {
     if (message === "1") {
-      return "ok registrado";
+      return "Adicionando refrigerante ao seu pedido 🥤";
+    } else if (message === "2") {
+      return "Adicionando borda recheada ao seu pedido 🧀";
+    } else if (message === "3") {
+      return this.orderSummaryMessage();
     } else return 'Não entendi sua solicitação, por favor selecione uma das opções 🙂';
   }
 
-  static welcomeMessage(): string {
-    return "👋 Olá! Bem-vindo à Pizzaria! Nosso cardápio é o seguinte:\n\n" +
-      "1️⃣ Pizza de Calabresa\n2️⃣ Pizza Portuguesa\n3️⃣ Pizza Frango com Catupiry\n" +
-      "\nEscolha o número da pizza que deseja pedir! 🍕";
+  static orderSummaryMessage(): string {
+    return "Pedido finalizado com sucesso! 🎉\n\n" +
+      "Resumo do pedido:\n\n" +
+      "🍕 Pizza de Calabresa\n" +
+      "🥤 Refrigerante: Coca Cola\n" +
+      "🧀 Borda recheada: Catupiry\n\n" +
+      "Valor total: R$ 50,00\n\n" +
+      "Tempo médio de entrega: 30 minutos! 🚚\n\n" +
+      "Obrigado por pedir na Pizzaria! 🍕";
+  }
+
+  static extraMessage(): string {
+    return "Deseja algum extra? 🍕\n\n1️⃣ Adicionar refrigerante (Coca Cola, Guaraná ou Fanta)\n2️⃣ Adicionar borda recheada (Catupiry, Chocolate ou Cheddar)\n3️⃣ Nenhum extra";
+  }
+
+  static welcomeMessage(name: string): string {
+    return `👋 Olá ${name}!\n🍕 Bem-vindo à Pizzaria Sabores do Chef!\n😋 O que deseja hoje?`;
   }
 }
