@@ -1,3 +1,4 @@
+import redisClient from "../../utils/redisClient";
 import { whatsappApi } from "../config/whatsappApi";
 import { WhatsAppMessage } from "../types/whatsapp";
 
@@ -52,7 +53,10 @@ export class WhatsappService {
     };
   }
 
-  static mountQuantityMessage(to: string, text: string, userState: string ): WhatsAppMessage {
+  static async mountQuantityMessage(to: string, text: string): Promise<WhatsAppMessage> {
+
+    const userStateKey = `user${to}:state`;
+    const userState = await redisClient.get(userStateKey);
 
     const message = {
       messaging_product: 'whatsapp',
@@ -77,7 +81,7 @@ export class WhatsappService {
       }
     };
 
-    if (userState.toUpperCase() === "CHOOSE_ITEM") {
+    if (userState && (userState.toUpperCase() === "PIZZA_QUANTITY" || userState.toUpperCase() === "PF_PIZZA_QUANTITY")) {
       message.interactive.action.sections.push({
         title: "Pizza",
         rows: [
@@ -91,7 +95,7 @@ export class WhatsappService {
 
       return message;
     }
-    if (userState.toUpperCase() === "FOGAZZA_QUANTITY" || userState.toUpperCase() === "PIZZA_FOGAZZA_QUANTITY") {
+    if (userState && (userState.toUpperCase() === "FOGAZZA_QUANTITY" || userState.toUpperCase() === "PF_FOGAZZA_QUANTITY")) {
       message.interactive.action.sections.push({
         title: "Fogazza",
         rows: [

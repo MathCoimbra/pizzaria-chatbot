@@ -15,16 +15,18 @@ export class ChatbotService {
       if (!entry || !changes || !messages) {
         console.log('Evento ignorado: Estrutura do corpo inválida ou sem mensagens.');
         res.sendStatus(200); // responde com sucesso para evitar novas tentativas do whatsapp
+        return;
       }
       // validação para ignorar mensagens do bot e trazer somente mensagens externas
       else if (body.entry[0].changes[0].value.messages[0].from === process.env.BOT_NUMBER) {
         console.log("Mensagem recebida do bot, ignorando...");
         res.sendStatus(200);
+        return;
       } else {
-        const from = body.entry[0].changes[0].value.messages[0].from;
-        const userText = body.entry[0].changes[0].value.messages[0].text?.body;
-        const name = body.entry[0].changes[0].value.contacts[0].profile.name;
-        const options = body.entry[0].changes[0].value.messages[0].interactive;
+        const from = messages.from;
+        const userText = messages.text?.body;
+        const name = changes.value.contacts?.[0]?.profile?.name;
+        const options = messages.interactive;
         console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
 
         const userStateKey = `user${from}:state`;
@@ -36,8 +38,9 @@ export class ChatbotService {
 
           await WhatsappService.sendMessage(WhatsappService.mountItemChoiceMessage(from, this.welcomeMessage(name)));
           res.status(200).send('Mensagem de boas-vindas enviada com sucesso!');
+          return;
         } else {
-          await this.handleUserState(userState, from, options, userStateKey, res);
+          await this.handleUserState(from, options, res);
         }
       }
     } catch (error: any) {
@@ -46,33 +49,41 @@ export class ChatbotService {
     }
   }
 
-  static async handleUserState(userState: string, from: string, options: any, userStateKey: string, res: Response): Promise<void> {
-    if (userState === "CHOOSE_ITEM" || userState === "PIZZA_QUANTITY" || userState === "FOGAZZA_QUANTITY" || userState === "PIZZA_FOGAZZA_QUANTITY") {
-      const quantityMessage = this.getQuantityMessage(options, userState, userStateKey);
+  static async handleUserState(from: string, options: any, res: Response): Promise<void> {
 
-      await WhatsappService.sendMessage(WhatsappService.mountQuantityMessage(from, quantityMessage, userState));
+    const userStateKey = `user${from}:state`;
+    const userState = await redisClient.get(userStateKey);
+    
+    if (!options) {
+      res.status(200).send('Nenhuma opção interativa recebida. Aguardando resposta do usuário.');
+      return; // NÃO avança no fluxo sem resposta válida
+    }
+    if (userState) {
+      const quantityMessage = await this.getQuantityMessage(options, userState, userStateKey);
+
+      await WhatsappService.sendMessage(await WhatsappService.mountQuantityMessage(from, quantityMessage));
       res.status(200).send('Mensagem enviada com sucesso!');
     }
   }
 
-  static getQuantityMessage(idItem: { button_reply: { id: string; }; }, userState: string, userStateKey: string): string {
+  static async getQuantityMessage(idItem: { button_reply: { id: string; }; }, userState: string, userStateKey: string): Promise<string> {
     if (userState === "CHOOSE_ITEM") {
       if (idItem?.button_reply?.id?.toUpperCase() === "PIZZA-ID") {
-        redisClient.set(userStateKey, "PIZZA_QUANTITY", 'EX', 86400);
+        await redisClient.set(userStateKey, "PIZZA_QUANTITY", 'EX', 86400);
         return "Quantas pizzas deseja pedir?";
       }
       if (idItem?.button_reply?.id?.toUpperCase() === "FOGAZZA-ID") {
-        redisClient.set(userStateKey, "FOGAZZA_QUANTITY", 'EX', 86400);
+        await redisClient.set(userStateKey, "FOGAZZA_QUANTITY", 'EX', 86400);
         return `Quantas fogazzas deseja pedir?`;
       }
       if (idItem?.button_reply?.id?.toUpperCase() === "PIZZAFOGAZZA-ID") {
-        redisClient.set(userStateKey, "PIZZA_FOGAZZA_QUANTITY", 'EX', 86400);
+        await redisClient.set(userStateKey, "PF_PIZZA_QUANTITY", 'EX', 86400);
         return "Quantas pizzas deseja pedir?";
       }
     }
 
-    if (userState === "PIZZA_FOGAZZA_QUANTITY") {
-      redisClient.set(userStateKey, "A DEFINIR", 'EX', 86400);
+    if (userState === "PF_PIZZA_QUANTITY") {
+      redisClient.set(userStateKey, "PF_FOGAZZA_QUANTITY", 'EX', 86400);
       return "Quantas fogazzas deseja pedir?";
     }
 
