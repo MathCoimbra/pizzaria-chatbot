@@ -81,31 +81,61 @@ export class WhatsappService {
       }
     };
 
-    if (userState && (userState.toUpperCase() === "PIZZA_QUANTITY" || userState.toUpperCase() === "PF_PIZZA_QUANTITY")) {
-      message.interactive.action.sections.push({
-        title: "Pizza",
-        rows: [
-          { id: "pizza_1", title: "1 Pizza" },
-          { id: "pizza_2", title: "2 Pizzas" },
-          { id: "pizza_3", title: "3 Pizzas" },
-          { id: "pizza_4", title: "4 Pizzas" },
-          { id: "pizza_5", title: "5 Pizzas" }
-        ]
-      });
 
-      return message;
-    }
-    if (userState && (userState.toUpperCase() === "FOGAZZA_QUANTITY" || userState.toUpperCase() === "PF_FOGAZZA_QUANTITY")) {
-      message.interactive.action.sections.push({
-        title: "Fogazza",
-        rows: [
-          { id: "fogazza_1", title: "1 Fogazza" },
-          { id: "fogazza_2", title: "2 Fogazzas" },
-          { id: "fogazza_3", title: "3 Fogazzas" },
-          { id: "fogazza_4", title: "4 Fogazzas" },
-          { id: "fogazza_5", title: "5 Fogazzas" }]
-      });
-      return message;
+    if (userState) {
+      const userStateJson: { step: string} = JSON.parse(userState);
+      if (userStateJson.step.toUpperCase() === "PIZZA_QUANTITY") {
+        message.interactive.action.sections.push({
+          title: "Pizza",
+          rows: [
+            { id: "pizza_1", title: "1" },
+            { id: "pizza_2", title: "2" },
+            { id: "pizza_3", title: "3" },
+            { id: "pizza_4", title: "4" },
+            { id: "pizza_5", title: "5" }
+          ]
+        });
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "FLAVOR_SPLIT" }), 'EX', 86400);
+        return message;
+      }
+      if (userStateJson.step.toUpperCase() === "FOGAZZA_QUANTITY") {
+        message.interactive.action.sections.push({
+          title: "Fogazza",
+          rows: [
+            { id: "fogazza_1", title: "1" },
+            { id: "fogazza_2", title: "2" },
+            { id: "fogazza_3", title: "3" },
+            { id: "fogazza_4", title: "4" },
+            { id: "fogazza_5", title: "5" }]
+        });
+        return message;
+      }
+      if (userStateJson.step.toUpperCase() === "PF_PIZZA_QUANTITY") {
+        message.interactive.action.sections.push({
+          title: "Pizza",
+          rows: [
+            { id: "pizza_1", title: "1" },
+            { id: "pizza_2", title: "2" },
+            { id: "pizza_3", title: "3" },
+            { id: "pizza_4", title: "4" },
+            { id: "pizza_5", title: "5" }
+          ]
+        });
+        return message;
+      }
+      if (userStateJson.step.toUpperCase() === "PF_FOGAZZA_QUANTITY") {
+        message.interactive.action.sections.push({
+          title: "Fogazza",
+          rows: [
+            { id: "fogazza_1", title: "1" },
+            { id: "fogazza_2", title: "2" },
+            { id: "fogazza_3", title: "3" },
+            { id: "fogazza_4", title: "4" },
+            { id: "fogazza_5", title: "5" }]
+        });
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "FLAVOR_SPLIT" }), 'EX', 86400);
+        return message;
+      }
     }
     return message;
   }
