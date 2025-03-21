@@ -22,10 +22,17 @@ export type Message = {
   timestamp: string;
   text: Text;
   type: string;
-  interactive: {
-    button_reply: {
-      id: string;
-    };
+  interactive: Interactive;
+};
+
+export type Interactive = {
+  list_reply: {
+    id: string;
+    title: string;
+  };
+  button_reply: {
+    id: string;
+    title: string;
   };
 };
 
