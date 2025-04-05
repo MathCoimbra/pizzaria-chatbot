@@ -289,9 +289,8 @@ export class WhatsappService {
     };
   }
 
-  static async getOrderValidationMessage(to: string): Promise<WhatsAppMessage> {
+  static async getOrderValidationMessage(to: string, order: string): Promise<WhatsAppMessage> {
 
-    const order = ""
     return {
       messaging_product: 'whatsapp',
       to,
@@ -299,7 +298,7 @@ export class WhatsappService {
       interactive: {
         type: 'button',
         body: {
-          text: `Certo! 🧑‍🍳\n\n Por favor, confirme se o seu pedido está correto:\n\n${order}`,
+          text: `🧑‍🍳 Pedido anotado! \n\n${order} \n\nConfirme com as opções abaixo:`,
         },
         action: {
           buttons: [
@@ -307,14 +306,14 @@ export class WhatsappService {
               type: 'reply',
               reply: {
                 id: 'yes-id',
-                title: 'Sim'
+                title: 'Certinho, isso mesmo'
               }
             },
             {
               type: 'reply',
               reply: {
                 id: 'no-id',
-                title: 'Não'
+                title: 'Não, tem algo errado'
               }
             }
           ]

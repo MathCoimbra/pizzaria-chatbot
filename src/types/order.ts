@@ -1,6 +1,6 @@
 export type Order = {
   pizzas: {
-    sabor: string;
+    sabor: string | string[];
     tamanho: string;
     borda: string;
   }[];
@@ -13,4 +13,5 @@ export type Order = {
     quantidade: number;
   }[];
   observacoes: string;
+  summary: string;
 };

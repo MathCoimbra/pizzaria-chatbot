@@ -79,8 +79,8 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
 
-        const AIResponse: Order = await AIService.processOrder(userText);
-        console.log("AIResponse", AIResponse);
+        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
+        console.log("AIResponse", JSON.stringify(AIResponse, null, 2));
 
         if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
 
@@ -92,7 +92,7 @@ export class ChatbotService {
                 return;
               }
             }
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from));
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
@@ -108,7 +108,8 @@ export class ChatbotService {
                 return;
               }
             }
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from));
+
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
