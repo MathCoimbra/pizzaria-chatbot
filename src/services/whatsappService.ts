@@ -1,5 +1,6 @@
 import redisClient from "../../utils/redisClient";
 import { whatsappApi } from "../config/whatsappApi";
+import { Order } from "../types/order";
 import { UserState } from "../types/userState";
 import { WhatsAppMessage } from "../types/whatsapp";
 
@@ -289,7 +290,7 @@ export class WhatsappService {
     };
   }
 
-  static async getOrderValidationMessage(to: string, order: string): Promise<WhatsAppMessage> {
+  static async getOrderValidationMessage(to: string, order: string, orderPrice: number): Promise<WhatsAppMessage> {
 
     return {
       messaging_product: 'whatsapp',
@@ -298,7 +299,7 @@ export class WhatsappService {
       interactive: {
         type: 'button',
         body: {
-          text: `🧑‍🍳 Pedido anotado! \n\n${order} \n\nConfirme com as opções abaixo:`,
+          text: `🧑‍🍳 Pedido anotado! \n\n${order} \n\nValor: R$${orderPrice},00 \n\nConfirme com as opções abaixo:`,
         },
         action: {
           buttons: [
@@ -320,6 +321,29 @@ export class WhatsappService {
         }
       }
     };
+  }
+
+  static async getOrderPrice(order: Order): Promise<number> {
+
+    const { pizza, fogazza, bebida } = order;
+    let orderPrice = 0;
+
+    for (const item of pizza) {
+      const { sabor, tamanho } = item;
+      orderPrice += Number(await redisClient.hget(`pizza:${sabor}:${tamanho}`.toLowerCase(), "preco"));
+    }
+
+    for (const item of fogazza) {
+      const { sabor } = item;
+      orderPrice += Number(await redisClient.hget(`fogazza:${sabor}`.toLowerCase(), "preco"));
+    }
+
+    for (const item of bebida) {
+      const { tipo } = item;
+      orderPrice += Number(await redisClient.hget(`bebida:${tipo}`.toLowerCase(), "preco"));
+    }
+
+    return orderPrice;
   }
 
   static mountOrderSummaryMessage(to: string, text?: string): WhatsAppMessage {

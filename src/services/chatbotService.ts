@@ -84,15 +84,15 @@ export class ChatbotService {
 
         if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
 
-          if (AIResponse.pizzas && AIResponse.pizzas.length > 0) {
-            for (const item of AIResponse.pizzas) {
+          if (AIResponse.pizza && AIResponse.pizza.length > 0) {
+            for (const item of AIResponse.pizza) {
               if (!item.tamanho || !item.sabor) {
                 await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
                 res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
                 return;
               }
             }
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary));
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
@@ -100,8 +100,8 @@ export class ChatbotService {
 
         if (userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
 
-          if (AIResponse.fogazzas && AIResponse.fogazzas.length > 0) {
-            for (const item of AIResponse.fogazzas) {
+          if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
+            for (const item of AIResponse.fogazza) {
               if (!item.sabor) {
                 await WhatsappService.sendMessage(await WhatsappService.getSizeErrorMessage(from));
                 res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
@@ -109,7 +109,7 @@ export class ChatbotService {
               }
             }
 
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary));
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
