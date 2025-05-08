@@ -71,7 +71,6 @@ export class ChatbotService {
         await this.handleItemSelection(interactive?.button_reply?.id, userText, userStateJson, userStateKey);
 
         await WhatsappService.sendMessage(await WhatsappService.mountMenuMessage(from));
-        await WhatsappService.sendMessage(await WhatsappService.getExtraMessage(from));
         await WhatsappService.sendMessage(await WhatsappService.getOrderMessage(from));
         res.status(200).send('Mensagens de cardápio e extra enviadas com sucesso!');
         return;
