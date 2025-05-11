@@ -184,9 +184,14 @@ export class WhatsappService {
       "Mussarela",
       "Cream Cheese",
       "Chocolate",
-      "Coca-Cola",
-      "Guaraná Antarctica",
-      "Fanta Laranja"
+      "coca_cola",
+      "fanta_laranja",
+      "fanta_uva",
+      "sukita_laranja",
+      "sukita_uva",
+      "dolly_guarana",
+      "dolly_laranja",
+      "dolly_limao",
     ];
   }
 
@@ -272,29 +277,34 @@ export class WhatsappService {
 
   static async getOrderPrice(order: Order): Promise<number> {
 
-    const { pizza, fogazza, bebida } = order;
     let orderPrice = 0;
 
-    for (const item of pizza) {
-      const { sabor, tamanho, borda } = item;
-      if (Array.isArray(sabor)) {
-        const halfPizzaPrice = await this.getHalfItemPrice(sabor, tamanho);
-        orderPrice += halfPizzaPrice;
-      } else {
-        orderPrice += Number(await redisClient.hget(`pizza:${findBestMatch(sabor, this.getPizza())}:${tamanho}`.toLowerCase(), "preco"));
+    if (order.pizza && order.pizza.length !== 0) {
+      for (const item of order.pizza) {
+        const { sabor, tamanho, borda } = item;
+        if (Array.isArray(sabor)) {
+          const halfPizzaPrice = await this.getHalfItemPrice(sabor, tamanho);
+          orderPrice += halfPizzaPrice;
+        } else {
+          orderPrice += Number(await redisClient.hget(`pizza:${findBestMatch(sabor, this.getPizza())}:${tamanho}`.toLowerCase(), "preco"));
+        }
+        orderPrice += Number(await redisClient.hget(`borda:${findBestMatch(borda, this.getExtra())}`.toLowerCase(), "preco"));
       }
-      orderPrice += Number(await redisClient.hget(`borda:${findBestMatch(borda, this.getExtra())}`.toLowerCase(), "preco"));
     }
 
-    for (const item of fogazza) {
-      const { sabor, borda } = item;
-      orderPrice += Number(await redisClient.hget(`fogazza:${findBestMatch(sabor, this.getFogazza())}`.toLowerCase(), "preco"));
-      orderPrice += Number(await redisClient.hget(`borda:${findBestMatch(borda, this.getExtra())}`.toLowerCase(), "preco"));
+    if (order.fogazza && order.fogazza.length !== 0) {
+      for (const item of order.fogazza) {
+        const { sabor, borda } = item;
+        orderPrice += Number(await redisClient.hget(`fogazza:${findBestMatch(sabor, this.getFogazza())}`.toLowerCase(), "preco"));
+        orderPrice += Number(await redisClient.hget(`borda:${findBestMatch(borda, this.getExtra())}`.toLowerCase(), "preco"));
+      }
     }
 
-    for (const item of bebida) {
-      const { tipo } = item;
-      orderPrice += Number(await redisClient.hget(`bebida:${findBestMatch(tipo, this.getExtra())}`.toLowerCase(), "preco"));
+    if (order.bebida && order.bebida.length !== 0) {
+      for (const item of order.bebida) {
+        const { tipo } = item;
+        orderPrice += Number(await redisClient.hget(`bebida:${findBestMatch(tipo, this.getExtra())}`.toLowerCase(), "preco"));
+      }
     }
 
     return orderPrice;

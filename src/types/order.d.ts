@@ -12,5 +12,5 @@ export type Order = {
     tipo: string;
   }[];
   observacoes: string;
-  summary: string;
+  resumo: string;
 };

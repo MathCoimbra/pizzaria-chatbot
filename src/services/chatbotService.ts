@@ -91,7 +91,7 @@ export class ChatbotService {
                 return;
               }
             }
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary, await WhatsappService.getOrderPrice(AIResponse)));
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
@@ -108,7 +108,7 @@ export class ChatbotService {
               }
             }
 
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.summary, await WhatsappService.getOrderPrice(AIResponse)));
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
