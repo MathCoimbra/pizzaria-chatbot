@@ -50,13 +50,13 @@ export class WhatsappService {
   // TO DO: mudar posteriormente esses métodos para que pegue as imagens do cardápio
 
   static getPizzaMenuMessage(): string {
-    const pizza = this.getPizza();
+    const pizza = this.getFlavor();
     const pizzaMenu = pizza.map((item, index) => `${index + 1} - ${item}`).join('\n');
     return `🍕 *Cardápio de Pizzas:*\n\n${pizzaMenu}`;
   }
 
   static getFogazzaMenuMessage(): string {
-    const fogazza = this.getFogazza();
+    const fogazza = this.getFlavor();
     const fogazzaMenu = fogazza.map((item, index) => `${index + 1} - ${item}`).join('\n');
     return `🥟 *Cardápio de Fogazzas:*\n\n${fogazzaMenu}`;
   }
@@ -94,96 +94,60 @@ export class WhatsappService {
     return `🧑‍🍳 Olá *${name}*!\n\n🍕 Bem vindo a pizzaria *Sabores do Chef*!\n📍 Por enquanto, atendemos apenas no bairro Pedreira e região.\n\n😋 O que deseja hoje?`;
   }
 
-  static getPizza(): Array<string> {
+  static getFlavor(): Array<string> {
     return [
-      "A Moda do Chefe",
-      "A Moda do Cliente",
-      "Atum",
-      "Atumpiry",
-      "Atumrela",
-      "Bacon",
-      "Baiacatu",
-      "Baiana",
-      "Bauru",
-      "Brócolis II",
-      "Caipira",
-      "Calabresa",
-      "Calabresa c/ Barbecue",
-      "Carne Seca",
-      "Catupiry",
-      "Frango a 2 Queijos",
-      "Frango a 3 Queijos",
-      "Frango c/ Catupiry",
-      "Lombo I",
-      "Lombo II",
-      "Marguerita",
-      "Milho Verde",
-      "Mussarela",
-      "Palmito",
-      "Paulista",
-      "Pepperoni",
-      "Pernil",
-      "Portuguesa",
-      "Quatro Queijos",
-      "Temaki",
-      "Toscana",
-      "Brigadeiro",
-      "Chocolate c/ Banana",
-      "Chocolate c/ Morango",
-      "Chocolate c/ Uva",
-      "Dois Amores",
-      "Nutella c/ Banana",
-      "Nutella c/ Morango",
-      "Nutella c/ Uva",
-      "Oreo",
-      "Prestígio",
-      "Romeu e Julieta"
-    ];
-  }
-
-  static getFogazza(): Array<string> {
-    return [
-      "A Moda do Chefe",
-      "À Moda do Cliente",
-      "Atum",
-      "Atumpiry",
-      "Atumrela",
-      "Bacon",
-      "Baiacatu",
-      "Baiana",
-      "Bauru",
-      "Brócolis II",
-      "Caipira",
-      "Calabresa",
-      "Calabresa c/ Barbecue",
-      "Carne Seca",
-      "Catupiry",
-      "Frango a 2 Queijos",
-      "Frango a 3 Queijos",
-      "Frango c/ Catupiry",
-      "Lombo I",
-      "Lombo II",
-      "Marguerita",
-      "Milho Verde",
-      "Mussarela",
-      "Palmito",
-      "Paulista",
-      "Pepperoni",
-      "Pernil",
-      "Portuguesa",
-      "Quatro Queijos",
-      "Temaki",
-      "Toscana"
+      "atum",
+      "atumpiry",
+      "atumrela",
+      "baiana",
+      "bacon",
+      "baiacatu",
+      "bauru",
+      "brigadeiro",
+      "brocolis_2",
+      "calabresa",
+      "calabresa_barbecue",
+      "carne_seca",
+      "caipira",
+      "catupiry",
+      "chocolate_banana",
+      "chocolate_morango",
+      "chocolate_uva",
+      "dois_amores",
+      "frango_3_queijos",
+      "frango_catupiry",
+      "frango_2_queijos",
+      "lombo_1",
+      "lombo_2",
+      "marguerita",
+      "milho_verde",
+      "moda_chefe",
+      "moda_cliente",
+      "mussarela",
+      "nutella_banana",
+      "nutella_morango",
+      "nutella_uva",
+      "oreo",
+      "palmito",
+      "paulista",
+      "pepperoni",
+      "pernil",
+      "portuguesa",
+      "prestigio",
+      "quatro_queijos",
+      "romeu_julieta",
+      "temaki",
+      "toscana"
     ];
   }
 
   static getExtra(): Array<string> {
     return [
-      "Catupiry",
-      "Cheddar",
-      "Mussarela",
-      "Cream Cheese",
-      "Chocolate",
+      "catupiry",
+      "cheddar",
+      "chocolate",
+      "cream_cheese",
+      "mussarela",
       "coca_cola",
       "fanta_laranja",
       "fanta_uva",
@@ -266,7 +230,7 @@ export class WhatsappService {
     let halfItemPrice = 0;
     let maxPrice = 0;
     for (const singleSabor of sabor) {
-      const price = Number(await redisClient.hget(`pizza:${findBestMatch(singleSabor, this.getPizza())}:${tamanho}`.toLowerCase(), "preco"));
+      const price = Number(await redisClient.hget(`pizza:${findBestMatch(singleSabor, this.getFlavor())}:${tamanho}`.toLowerCase(), "preco"));
       if (price > maxPrice) {
         maxPrice = price;
       }
@@ -286,7 +250,7 @@ export class WhatsappService {
           const halfPizzaPrice = await this.getHalfItemPrice(sabor, tamanho);
           orderPrice += halfPizzaPrice;
         } else {
-          orderPrice += Number(await redisClient.hget(`pizza:${findBestMatch(sabor, this.getPizza())}:${tamanho}`.toLowerCase(), "preco"));
+          orderPrice += Number(await redisClient.hget(`pizza:${findBestMatch(sabor, this.getFlavor())}:${tamanho}`.toLowerCase(), "preco"));
         }
         orderPrice += Number(await redisClient.hget(`borda:${findBestMatch(borda, this.getExtra())}`.toLowerCase(), "preco"));
       }
@@ -295,7 +259,7 @@ export class WhatsappService {
     if (order.fogazza && order.fogazza.length !== 0) {
       for (const item of order.fogazza) {
         const { sabor, borda } = item;
-        orderPrice += Number(await redisClient.hget(`fogazza:${findBestMatch(sabor, this.getFogazza())}`.toLowerCase(), "preco"));
+        orderPrice += Number(await redisClient.hget(`fogazza:${findBestMatch(sabor, this.getFlavor())}`.toLowerCase(), "preco"));
         orderPrice += Number(await redisClient.hget(`borda:${findBestMatch(borda, this.getExtra())}`.toLowerCase(), "preco"));
       }
     }
