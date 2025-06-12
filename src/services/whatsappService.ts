@@ -1,6 +1,6 @@
-import redisClient from "../../utils/redisClient";
+import redisClient from "../middlewares/redisClient";
 import { findBestMatch } from "../../utils/stringSimilarity";
-import { whatsappApi } from "../config/whatsappApi";
+import { whatsappApi } from "../middlewares/whatsappApi";
 import { Order } from "../types/order";
 import { UserState } from "../types/userState";
 import { WhatsAppMessage } from "../types/whatsapp";
@@ -178,6 +178,28 @@ export class WhatsappService {
       type: 'text',
       text: {
         body: `Ficou faltando informar o tamanho (grande ou broto) e/ou o sabor de um ou mais itens do pedido, por favor envie novamente o pedido completo 🙂`
+      }
+    };
+  }
+
+  static async getClientFlavorErrorMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Desculpe, mas a pizza "A Moda do Chefe" só pode ser feita inteira, não conseguimos oferecê-la como meia-meia. Por favor, envie novamente o pedido completo 🙂`
+      }
+    };
+  }
+
+  static async getClientFlavorMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Ok, escolha até 5 ingredientes e me mande em uma única mensagem por favor. Temos os seguintes ingredientes disponíveis: x,y,z 🙂`
       }
     };
   }

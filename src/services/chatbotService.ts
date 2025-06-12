@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Interactive, WhatsAppWebhookEvent } from "../types/whatsapp";
 import { WhatsappService } from './whatsappService';
-import redisClient from '../../utils/redisClient';
+import redisClient from '../middlewares/redisClient';
 import { UserState } from '../types/userState';
 import { findBestMatch } from '../../utils/stringSimilarity';
 import { AIService } from './AIService';
@@ -85,11 +85,27 @@ export class ChatbotService {
 
           if (AIResponse.pizza && AIResponse.pizza.length > 0) {
             for (const item of AIResponse.pizza) {
+
+              if (Array.isArray(item.sabor) && item.sabor.some((flavor: string) => findBestMatch(flavor, WhatsappService.getFlavor()) === "moda_cliente")
+              ) {
+                await WhatsappService.sendMessage(await WhatsappService.getClientFlavorErrorMessage(from));
+                res.status(200).send('Mensagem de alerta sobre sabor "A Moda do Cliente" na pizza meia meia enviada com sucesso!');
+                return;
+              }
+
+              if (typeof item.sabor === "string" && findBestMatch(item.sabor, WhatsappService.getFlavor()) === "moda_cliente") {
+                await WhatsappService.sendMessage(await WhatsappService.getClientFlavorMessage(from));
+                await redisClient.set(userStateKey, JSON.stringify({ "step": "CHOOSE_FLAVOR" }), 'EX', 86400);
+                res.status(200).send('Mensagem solicitando ingredientes enviada com sucesso!');
+                return;
+              }
+
               if (!item.tamanho || !item.sabor) {
                 await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
                 res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
                 return;
               }
+
             }
             await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
@@ -109,6 +125,16 @@ export class ChatbotService {
             }
 
             await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+            res.status(200).send('Pedido processado com sucesso!');
+            return;
+          }
+        }
+
+        if (userStateJson.step.toUpperCase() === "CHOOSE_FLAVOR") {
+
+          if (userText) {
+
+            // await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo + `Ingredientes da pizza escolhidos:${}`, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }

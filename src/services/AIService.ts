@@ -10,21 +10,21 @@ export class AIService {
 
     let prompt = "";
 
-    if (userState.toUpperCase() === "PIZZA_MENU" || userState.toUpperCase() === "PF_PIZZA_MENU") {
+    if (userState.toUpperCase() === "PIZZA_MENU") {
       prompt = `Interprete a seguinte mensagem do usuário e extraia os dados do pedido. Retorne apenas um JSON estruturado com os seguintes campos:
       - \`pizza\`: Uma lista de objetos contendo \`sabor\`, \`tamanho\` e \`borda\`(se for meia a meia, \`sabor\` será uma lista com 2 sabores)
       - \`bebida\`: Uma lista de objetos contendo \`tipo\`
       - \`observacoes\`: Qualquer informação extra que o cliente mencionou
       - \`resumo\`: Resumo amigável do pedido
       Exemplo de entrada do usuário: "Quero uma pizza grande de calabresa com borda de catupiry, uma broto de portuguesa. E um dolly coca. Pode caprichar no recheio!". Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
-    } else if (userState.toUpperCase() === "FOGAZZA_MENU" || userState.toUpperCase() === "PF_FOGAZZA_MENU") {
+    } else if (userState.toUpperCase() === "FOGAZZA_MENU") {
       prompt = `Interprete a seguinte mensagem do usuário e extraia os dados do pedido. Retorne apenas um JSON estruturado com os seguintes campos:
       - \`fogazza\`: Uma lista de objetos contendo \`sabor\` e \`borda\`
       - \`bebida\`: Uma lista de objetos contendo \`tipo\`
       - \`observacoes\`: Qualquer informação extra que o cliente mencionou
       - \`resumo\`: Resumo amigável do pedido
       Exemplo de entrada do usuário: "Quero uma fogazza de portuguesa com borda de catupiry. E um guaraná. Pode caprichar no recheio!". Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
-    } else {
+    } else if (userState.toUpperCase() === "PF_FOGAZZA_MENU" || userState.toUpperCase() === "PF_PIZZA_MENU") {
       prompt = `Interprete a seguinte mensagem do usuário e extraia os dados do pedido. Retorne apenas um JSON estruturado com os seguintes campos:
       - \`pizza\`: Uma lista de objetos contendo \`sabor\`, \`tamanho\` e \`borda\`(se for meia a meia, \`sabor\` será uma lista com 2 sabores)
       - \`fogazza\`: Uma lista de objetos contendo \`sabor\` e \`borda\`
