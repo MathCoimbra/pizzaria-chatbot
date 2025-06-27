@@ -76,7 +76,7 @@ export class ChatbotService {
         return;
       }
 
-      if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
+      if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "CHOOSE_FLAVOR") {
 
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse", JSON.stringify(AIResponse, null, 2));
@@ -132,12 +132,45 @@ export class ChatbotService {
 
         if (userStateJson.step.toUpperCase() === "CHOOSE_FLAVOR") {
 
-          if (userText) {
+          const flavorsArray = userText
+            .split(/,| e |;/i)
+            .map(flavor => flavor.trim())
+            .filter(flavor => flavor.length > 0);
 
-            // await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo + `Ingredientes da pizza escolhidos:${}`, await WhatsappService.getOrderPrice(AIResponse)));
+          const matchedFlavors = flavorsArray.map(flavor =>
+            findBestMatch(flavor, [
+              "calabresa", "cebola", "mussarela", "bacon", "atum", "calabresa_moida", "pimenta", "ovos", "presunto", "tomate", "brocolis", "milho", "frango_desfiado", "barbecue", "carne_seca", "pimenta_biquinho", "frango", "parmesao", "lombo", "manjericao", "milho_verde", "palmito", "pepperoni", "pernil", "pimentao", "azeitona_preta", "cheddar", "cream_cheese", "molho_tare", "cebolinha", "molho_de_tomate"
+            ])
+          );
+
+          const availableFlavors: string[] = [];
+          const pendentFlavors: string[] = [];
+
+          for (const flavor of matchedFlavors) {
+            if (flavor) {
+              const status = await redisClient.get(`flavor:${flavor}`);
+              if (status === "ok") {
+                availableFlavors.push(flavor);
+              } else if (status === "pendent") {
+                pendentFlavors.push(flavor);
+              } else {
+                pendentFlavors.push(flavor);
+              }
+            }
+          }
+
+          if (pendentFlavors.length > 0) {
+            await WhatsappService.sendMessage(await WhatsappService.getFlavorErrorMessage(from, pendentFlavors, availableFlavors));
+            res.status(200).send(`Mensagem de sabor(es) pendent(es) enviada com sucesso!`);
+            return;
+          }
+
+          if (availableFlavors.length > 0) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
+
         }
       }
     }

@@ -193,6 +193,17 @@ export class WhatsappService {
     };
   }
 
+    static async getFlavorErrorMessage(to: string, pendentFlavors: string[], availableFlavors: string[]): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Desculpe mas os seguintes ingredientes: ${pendentFlavors}, nós não temos disponíveis mais. Por favor, escolha entre os seguintes sabores: ${availableFlavors} 🙂`
+      }
+    };
+  }
+
   static async getClientFlavorMessage(to: string): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
