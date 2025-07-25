@@ -188,7 +188,7 @@ export class WhatsappService {
       to,
       type: 'text',
       text: {
-        body: `Desculpe, mas a pizza "A Moda do Chefe" só pode ser feita inteira, não conseguimos oferecê-la como meia-meia. Por favor, envie novamente o pedido completo 🙂`
+        body: `Desculpe, mas a pizza "A Moda do Cliente" só pode ser feita inteira, não conseguimos oferecê-la como meia-meia. Por favor, envie novamente o pedido completo 🙂`
       }
     };
   }
@@ -199,18 +199,7 @@ export class WhatsappService {
       to,
       type: 'text',
       text: {
-        body: `Desculpe mas os seguintes ingredientes: ${pendentFlavors}, nós não temos disponíveis mais. Por favor, escolha entre os seguintes sabores: ${availableFlavors} 🙂`
-      }
-    };
-  }
-
-  static async getClientFlavorMessage(to: string): Promise<WhatsAppMessage> {
-    return {
-      messaging_product: 'whatsapp',
-      to,
-      type: 'text',
-      text: {
-        body: `Ok, escolha até 5 ingredientes e me mande em uma única mensagem por favor. Temos os seguintes ingredientes disponíveis: x,y,z 🙂`
+        body: `Desculpe mas os seguintes ingredientes: ~${pendentFlavors}~, nós não temos disponíveis mais. Escolha entre os seguintes sabores abaixo e nos envie novamente o pedido completo corrigido, por favor 🙂: \n\n*${availableFlavors}* `
       }
     };
   }

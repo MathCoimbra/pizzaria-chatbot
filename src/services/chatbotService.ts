@@ -86,6 +86,12 @@ export class ChatbotService {
           if (AIResponse.pizza && AIResponse.pizza.length > 0) {
             for (const item of AIResponse.pizza) {
 
+              if (!item.tamanho || !item.sabor) {
+                await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
+                res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
+                return;
+              }
+
               if (Array.isArray(item.sabor) && item.sabor.some((flavor: string) => findBestMatch(flavor, WhatsappService.getFlavor()) === "moda_cliente")
               ) {
                 await WhatsappService.sendMessage(await WhatsappService.getClientFlavorErrorMessage(from));
@@ -94,16 +100,52 @@ export class ChatbotService {
               }
 
               if (typeof item.sabor === "string" && findBestMatch(item.sabor, WhatsappService.getFlavor()) === "moda_cliente") {
-                await WhatsappService.sendMessage(await WhatsappService.getClientFlavorMessage(from));
-                await redisClient.set(userStateKey, JSON.stringify({ "step": "CHOOSE_FLAVOR" }), 'EX', 86400);
-                res.status(200).send('Mensagem solicitando ingredientes enviada com sucesso!');
-                return;
-              }
 
-              if (!item.tamanho || !item.sabor) {
-                await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
-                res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
-                return;
+                if (!item.ingredientes) {
+                  await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
+                  res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
+                  return;
+                } else {
+
+                  const flavorsArray = item.ingredientes
+                    .split(/,| e |;/i)
+                    .map(flavor => flavor.trim())
+                    .filter(flavor => flavor.length > 0);
+
+                  // Lista de todos os sabores possíveis
+                  const allFlavors = [
+                    "calabresa", "cebola", "mussarela", "bacon", "atum", "calabresa_moida", "pimenta", "ovos", "presunto", "tomate", "brocolis", "milho", "frango_desfiado", "barbecue", "carne_seca", "pimenta_biquinho", "frango", "parmesao", "lombo", "manjericao", "milho_verde", "palmito", "pepperoni", "pernil", "pimentao", "azeitona_preta", "cheddar", "cream_cheese", "molho_tare", "cebolinha", "molho_de_tomate"
+                  ];
+
+                  // Ingredientes enviados pelo cliente (normalizados)
+                  const clientFlavors = flavorsArray.map(flavor =>
+                    findBestMatch(flavor, allFlavors)
+                  );
+
+                  // todos os sabores disponíveis
+                  const availableFlavors: string[] = [];
+                  for (const flavor of allFlavors) {
+                    const status = await redisClient.hget(`flavor:${flavor}`, "status");
+                    if (status === "ok") {
+                      availableFlavors.push(flavor);
+                    }
+                  }
+
+                  // pendentFlavors: sabores enviados pelo cliente que não estão disponíveis
+                  const pendentFlavors: string[] = [];
+                  for (const flavor of clientFlavors) {
+                    const status = await redisClient.hget(`flavor:${flavor}`, "status");
+                    if (status !== "ok" && flavor) {
+                      pendentFlavors.push(flavor);
+                    }
+                  }
+
+                  if (pendentFlavors.length > 0) {
+                    await WhatsappService.sendMessage(await WhatsappService.getFlavorErrorMessage(from, pendentFlavors, availableFlavors));
+                    res.status(200).send(`Mensagem de sabor(es) pendente(es) enviada com sucesso!`);
+                    return;
+                  }
+                }
               }
 
             }
@@ -128,49 +170,6 @@ export class ChatbotService {
             res.status(200).send('Pedido processado com sucesso!');
             return;
           }
-        }
-
-        if (userStateJson.step.toUpperCase() === "CHOOSE_FLAVOR") {
-
-          const flavorsArray = userText
-            .split(/,| e |;/i)
-            .map(flavor => flavor.trim())
-            .filter(flavor => flavor.length > 0);
-
-          const matchedFlavors = flavorsArray.map(flavor =>
-            findBestMatch(flavor, [
-              "calabresa", "cebola", "mussarela", "bacon", "atum", "calabresa_moida", "pimenta", "ovos", "presunto", "tomate", "brocolis", "milho", "frango_desfiado", "barbecue", "carne_seca", "pimenta_biquinho", "frango", "parmesao", "lombo", "manjericao", "milho_verde", "palmito", "pepperoni", "pernil", "pimentao", "azeitona_preta", "cheddar", "cream_cheese", "molho_tare", "cebolinha", "molho_de_tomate"
-            ])
-          );
-
-          const availableFlavors: string[] = [];
-          const pendentFlavors: string[] = [];
-
-          for (const flavor of matchedFlavors) {
-            if (flavor) {
-              const status = await redisClient.get(`flavor:${flavor}`);
-              if (status === "ok") {
-                availableFlavors.push(flavor);
-              } else if (status === "pendent") {
-                pendentFlavors.push(flavor);
-              } else {
-                pendentFlavors.push(flavor);
-              }
-            }
-          }
-
-          if (pendentFlavors.length > 0) {
-            await WhatsappService.sendMessage(await WhatsappService.getFlavorErrorMessage(from, pendentFlavors, availableFlavors));
-            res.status(200).send(`Mensagem de sabor(es) pendent(es) enviada com sucesso!`);
-            return;
-          }
-
-          if (availableFlavors.length > 0) {
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
-            res.status(200).send('Pedido processado com sucesso!');
-            return;
-          }
-
         }
       }
     }

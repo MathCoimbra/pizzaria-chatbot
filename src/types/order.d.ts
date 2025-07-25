@@ -1,6 +1,7 @@
 export type Order = {
   pizza: {
     sabor: string | string[];
+    ingredientes?: string;
     tamanho: string;
     borda: string;
   }[];
