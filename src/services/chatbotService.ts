@@ -76,100 +76,196 @@ export class ChatbotService {
         return;
       }
 
-      if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "CHOOSE_FLAVOR") {
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "YES-ID") {
 
-        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
-        console.log("AIResponse", JSON.stringify(AIResponse, null, 2));
+        await WhatsappService.sendMessage(await WhatsappService.getDeliveryValidationMessage(from));
+        res.status(200).send('Mensagem de validação de entrega enviada com sucesso!');
+        return;
+      }
 
-        if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "PICKUP-ID") {
 
-          if (AIResponse.pizza && AIResponse.pizza.length > 0) {
-            for (const item of AIResponse.pizza) {
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_RESUME" }), 'EX', 86400);
+        await WhatsappService.sendMessage(await WhatsappService.getPizzeriaAddressMessage(from));
+        await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
+        res.status(200).send('Mensagens de endereço e forma de pagamento enviadas com sucesso!');
+        return;
+      }
 
-              if (!item.tamanho || !item.sabor) {
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "DELIVERY-ID") {
+
+        if (userStateJson.address && userStateJson.address.length > 0) {
+          await WhatsappService.sendMessage(await WhatsappService.getAddressValidationMessage(from, userStateJson.address));
+          res.status(200).send('Mensagem de validação de endereço enviada com sucesso!');
+          return;
+        } else {
+          await redisClient.set(userStateKey, JSON.stringify({ "step": "ADDRESS" }), 'EX', 86400);
+          await WhatsappService.sendMessage(await WhatsappService.getAddressMessage(from));
+          res.status(200).send('Mensagem de endereço enviada com sucesso!');
+          return;
+        }
+
+      }
+
+      if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
+        userStateJson.address = userText;
+        await redisClient.set(userStateKey, JSON.stringify(userStateJson), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_RESUME" }), 'EX', 86400);
+        await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
+        res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
+        return;
+      }
+
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ADDRESS-ID") {
+
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_RESUME" }), 'EX', 86400);
+        await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
+        res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
+        return;
+
+      } else if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ADDRESS-EDIT-ID") {
+
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "ADDRESS_EDIT" }), 'EX', 86400);
+        await WhatsappService.sendMessage(await WhatsappService.getAddressMessage(from));
+        res.status(200).send('Mensagem de endereço enviada com sucesso!');
+        return;
+      }
+
+      if (userStateJson.step.toUpperCase() === "ORDER_RESUME") {
+
+        // bot manda mensagem final agradecendo, informando o valor total do pedido, forma de pagamento e um tempo de entrega
+      }
+
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "NO-ID") {
+
+        await WhatsappService.sendMessage(await WhatsappService.getOrderEditOrCancelMessage(from));
+        res.status(200).send('Mensagem de endereço enviada com sucesso!');
+        return;
+      }
+
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ORDER-CANCEL-ID") {
+
+        // bot cancela o pedido → resetando o estado do usuário (excluindo os dados de estado)
+        await redisClient.del(userStateKey);
+        // manda mensagem lamentando e informando se caso querer pedir em algum momento só avisar
+        await WhatsappService.sendMessage(await WhatsappService.getCancelMessage(from));
+        res.status(200).send('Mensagem de endereço enviada com sucesso!');
+        return;
+      }
+
+      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ORDER-EDIT-ID") {
+
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_EDIT" }), 'EX', 86400);
+        await WhatsappService.sendMessage(await WhatsappService.getOrderEditMessage(from));
+        res.status(200).send('Mensagem de endereço enviada com sucesso!');
+        return;
+      }
+
+      if (userStateJson.step.toUpperCase() === "ORDER_EDIT") {
+
+        // IA do bot analisa e atualiza o pedido
+        const AIResponse: Order = await AIService.editOrder(userText, userStateJson.order);
+        console.log("AIResponse editOrder", JSON.stringify(AIResponse, null, 2));
+
+        // após análise manda o pedido atualizado para confirmação novamente (repetindo o processo)
+        await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+        res.status(200).send('Pedido processado com sucesso!');
+        return;
+      }
+
+      const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
+      console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+      await redisClient.set(userStateKey, JSON.stringify({ "order": AIResponse }), 'EX', 86400);
+
+      if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
+
+        if (AIResponse.pizza && AIResponse.pizza.length > 0) {
+          for (const item of AIResponse.pizza) {
+
+            if (!item.tamanho || !item.sabor) {
+              await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
+              res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
+              return;
+            }
+
+            if (Array.isArray(item.sabor) && item.sabor.some((flavor: string) => findBestMatch(flavor, WhatsappService.getFlavor()) === "moda_cliente")
+            ) {
+              await WhatsappService.sendMessage(await WhatsappService.getClientFlavorErrorMessage(from));
+              res.status(200).send('Mensagem de alerta sobre sabor "A Moda do Cliente" na pizza meia meia enviada com sucesso!');
+              return;
+            }
+
+            if (typeof item.sabor === "string" && findBestMatch(item.sabor, WhatsappService.getFlavor()) === "moda_cliente") {
+
+              if (!item.ingredientes) {
                 await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
                 res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
                 return;
-              }
+              } else {
 
-              if (Array.isArray(item.sabor) && item.sabor.some((flavor: string) => findBestMatch(flavor, WhatsappService.getFlavor()) === "moda_cliente")
-              ) {
-                await WhatsappService.sendMessage(await WhatsappService.getClientFlavorErrorMessage(from));
-                res.status(200).send('Mensagem de alerta sobre sabor "A Moda do Cliente" na pizza meia meia enviada com sucesso!');
-                return;
-              }
+                const flavorsArray = item.ingredientes
+                  .split(/,| e |;/i)
+                  .map(flavor => flavor.trim())
+                  .filter(flavor => flavor.length > 0);
 
-              if (typeof item.sabor === "string" && findBestMatch(item.sabor, WhatsappService.getFlavor()) === "moda_cliente") {
+                // Lista de todos os sabores possíveis
+                const allFlavors = [
+                  "calabresa", "cebola", "mussarela", "bacon", "atum", "calabresa_moida", "pimenta", "ovos", "presunto", "tomate", "brocolis", "milho", "frango_desfiado", "barbecue", "carne_seca", "pimenta_biquinho", "frango", "parmesao", "lombo", "manjericao", "milho_verde", "palmito", "pepperoni", "pernil", "pimentao", "azeitona_preta", "cheddar", "cream_cheese", "molho_tare", "cebolinha", "molho_de_tomate"
+                ];
 
-                if (!item.ingredientes) {
-                  await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
-                  res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
-                  return;
-                } else {
+                // Ingredientes enviados pelo cliente (normalizados)
+                const clientFlavors = flavorsArray.map(flavor =>
+                  findBestMatch(flavor, allFlavors)
+                );
 
-                  const flavorsArray = item.ingredientes
-                    .split(/,| e |;/i)
-                    .map(flavor => flavor.trim())
-                    .filter(flavor => flavor.length > 0);
-
-                  // Lista de todos os sabores possíveis
-                  const allFlavors = [
-                    "calabresa", "cebola", "mussarela", "bacon", "atum", "calabresa_moida", "pimenta", "ovos", "presunto", "tomate", "brocolis", "milho", "frango_desfiado", "barbecue", "carne_seca", "pimenta_biquinho", "frango", "parmesao", "lombo", "manjericao", "milho_verde", "palmito", "pepperoni", "pernil", "pimentao", "azeitona_preta", "cheddar", "cream_cheese", "molho_tare", "cebolinha", "molho_de_tomate"
-                  ];
-
-                  // Ingredientes enviados pelo cliente (normalizados)
-                  const clientFlavors = flavorsArray.map(flavor =>
-                    findBestMatch(flavor, allFlavors)
-                  );
-
-                  // todos os sabores disponíveis
-                  const availableFlavors: string[] = [];
-                  for (const flavor of allFlavors) {
-                    const status = await redisClient.hget(`flavor:${flavor}`, "status");
-                    if (status === "ok") {
-                      availableFlavors.push(flavor);
-                    }
-                  }
-
-                  // pendentFlavors: sabores enviados pelo cliente que não estão disponíveis
-                  const pendentFlavors: string[] = [];
-                  for (const flavor of clientFlavors) {
-                    const status = await redisClient.hget(`flavor:${flavor}`, "status");
-                    if (status !== "ok" && flavor) {
-                      pendentFlavors.push(flavor);
-                    }
-                  }
-
-                  if (pendentFlavors.length > 0) {
-                    await WhatsappService.sendMessage(await WhatsappService.getFlavorErrorMessage(from, pendentFlavors, availableFlavors));
-                    res.status(200).send(`Mensagem de sabor(es) pendente(es) enviada com sucesso!`);
-                    return;
+                // todos os sabores disponíveis
+                const availableFlavors: string[] = [];
+                for (const flavor of allFlavors) {
+                  const status = await redisClient.hget(`flavor:${flavor}`, "status");
+                  if (status === "ok") {
+                    availableFlavors.push(flavor);
                   }
                 }
-              }
 
+                // pendentFlavors: sabores enviados pelo cliente que não estão disponíveis
+                const pendentFlavors: string[] = [];
+                for (const flavor of clientFlavors) {
+                  const status = await redisClient.hget(`flavor:${flavor}`, "status");
+                  if (status !== "ok" && flavor) {
+                    pendentFlavors.push(flavor);
+                  }
+                }
+
+                if (pendentFlavors.length > 0) {
+                  await WhatsappService.sendMessage(await WhatsappService.getFlavorErrorMessage(from, pendentFlavors, availableFlavors));
+                  res.status(200).send(`Mensagem de sabor(es) pendente(es) enviada com sucesso!`);
+                  return;
+                }
+              }
             }
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
-            res.status(200).send('Pedido processado com sucesso!');
-            return;
+
           }
+          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+          res.status(200).send('Pedido processado com sucesso!');
+          return;
         }
+      }
 
-        if (userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
+      if (userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
 
-          if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
-            for (const item of AIResponse.fogazza) {
-              if (!item.sabor) {
-                await WhatsappService.sendMessage(await WhatsappService.getSizeErrorMessage(from));
-                res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
-                return;
-              }
+        if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
+          for (const item of AIResponse.fogazza) {
+            if (!item.sabor) {
+              await WhatsappService.sendMessage(await WhatsappService.getSizeErrorMessage(from));
+              res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
+              return;
             }
-
-            await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
-            res.status(200).send('Pedido processado com sucesso!');
-            return;
           }
+
+          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+          res.status(200).send('Pedido processado com sucesso!');
+          return;
         }
       }
     }

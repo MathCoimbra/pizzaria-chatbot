@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Order } from "../types/order";
 
 export class AIService {
 
@@ -34,6 +35,55 @@ export class AIService {
       Classifique como **fogazza** apenas se a palavra "fogazza" for mencionada. Caso contrário, trate como pizza, mesmo que o sabor ou borda seja doce.
       Exemplo de entrada: "Quero uma pizza grande de mussarela com borda de catupiry, uma broto de atum e uma fogazza de bauru. Também quero duas cocas e uma fanta. Pode caprichar no recheio!". Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
     }
+
+    // Fazendo a chamada para a IA
+    const result = await model.generateContent(prompt);
+
+    // Pegando o texto da resposta
+    const responseText = result.response.text();
+
+    // Removendo o markdown do responseText
+    const cleanedResponse = responseText.replace(/```json\n|```/g, "");
+
+    // Convertendo para JSON
+    try {
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.error("Erro ao converter resposta da IA para JSON:", error);
+      return null;
+    }
+  }
+
+  // Método para editar o pedido de pizza
+  static async editOrder(userMessage: string, order: Order): Promise<any> {
+
+    const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || "");
+    const model = genAI.getGenerativeModel({ model: process.env.AI_MODEL || "" });
+
+    let prompt = `Você é responsável por atualizar um pedido em formato JSON
+        Pedido atual:
+        ${order}
+        Instrução do cliente para edição:
+        ${userMessage}
+        Siga essa tipagem:
+        export type Order = {
+          pizza: {
+            sabor: string | string[];
+            ingredientes?: string;
+            tamanho: string;
+            borda: string;
+          }[];
+          fogazza: {
+            sabor: string;
+            borda: string;
+          }[];
+          bebida: {
+            tipo: string;
+          }[];
+          observacoes: string;
+          resumo: string;
+        };
+        Retorne SOMENTE um JSON válido do tipo Order, sem explicações adicionais.`;
 
     // Fazendo a chamada para a IA
     const result = await model.generateContent(prompt);

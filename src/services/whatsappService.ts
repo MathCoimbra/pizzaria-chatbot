@@ -170,6 +170,156 @@ export class WhatsappService {
     };
   }
 
+  static async getOrderEditMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `🧑‍🍳 Por favor, envie a alteração do seu pedido em uma única mensagem de texto para que eu consiga entender tudo direitinho 🙂`
+      }
+    };
+  }
+
+  static async getCancelMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `🧑‍🍳 Ok! Seu pedido foi cancelado. Caso queira fazer um novo pedido em outro momento, só me chamar 🙂`
+      }
+    };
+  }
+
+  static async getPizzeriaAddressMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `🧑‍🍳 Certo! Nossa pizzaria fica localizada na ${process.env.PIZZERIA_ADDRESS}`
+      }
+    };
+  }
+
+  static async getPaymentMethodMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `🧑‍🍳 Certo! Me envie a forma de pagamento por favor, aceitamos: \n\n💳 Cartão de crédito/débito (VISA, Mastercard, Maestro e Elo) \n💵 Dinheiro (informe se precisar de troco)\n📱 Pix (chave: celular) - ${process.env.PIX_NUMBER}`
+      }
+    };
+  }
+
+  static async getOrderEditOrCancelMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: {
+          text: `🧑‍🍳 Ok! Deseja ajustar o pedido ou cancelar?`,
+        },
+        action: {
+          buttons: [
+            {
+              type: 'reply',
+              reply: {
+                id: 'order-edit-id',
+                title: 'Ajustar pedido'
+              }
+            },
+            {
+              type: 'reply',
+              reply: {
+                id: 'order-cancel-id',
+                title: 'Cancelar pedido'
+              }
+            }
+          ]
+        }
+      }
+    };
+  }
+
+  static async getAddressMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `🧑‍🍳 Ok! Mande o endereço completo e um ponto de refêrencia, por favor.`
+      }
+    };
+  }
+
+  static async getAddressValidationMessage(to: string, userAddress: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: {
+          text: `🧑‍🍳 Ok! Confirme o endereço de entrega por favor: \n\n${userAddress}`,
+        },
+        action: {
+          buttons: [
+            {
+              type: 'reply',
+              reply: {
+                id: 'address-id',
+                title: 'Sim, é esse mesmo'
+              }
+            },
+            {
+              type: 'reply',
+              reply: {
+                id: 'address-edit-id',
+                title: 'Não, é outro endereço'
+              }
+            }
+          ]
+        }
+      }
+    };
+  }
+
+  static async getDeliveryValidationMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: {
+          text: `🧑‍🍳 Ótimo! Você gostaria de retirar no local ou prefere que entreguemos em sua casa? 🙂`,
+        },
+        action: {
+          buttons: [
+            {
+              type: 'reply',
+              reply: {
+                id: 'pickup-id',
+                title: 'Retirar no local'
+              }
+            },
+            {
+              type: 'reply',
+              reply: {
+                id: 'delivery-id',
+                title: 'Entrega em casa'
+              }
+            }
+          ]
+        }
+      }
+    };
+  }
 
   static async getFlavorSizeErrorMessage(to: string): Promise<WhatsAppMessage> {
     return {
@@ -193,7 +343,7 @@ export class WhatsappService {
     };
   }
 
-    static async getFlavorErrorMessage(to: string, pendentFlavors: string[], availableFlavors: string[]): Promise<WhatsAppMessage> {
+  static async getFlavorErrorMessage(to: string, pendentFlavors: string[], availableFlavors: string[]): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
       to,
