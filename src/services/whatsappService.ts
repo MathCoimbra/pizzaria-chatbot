@@ -446,7 +446,7 @@ export class WhatsappService {
     return orderPrice;
   }
 
-  static mountOrderSummaryMessage(to: string, text?: string): WhatsAppMessage {
+  static async mountOrderSummaryMessage(to: string, text?: string): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
       to,
