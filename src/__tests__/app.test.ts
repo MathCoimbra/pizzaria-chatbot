@@ -1,13 +1,13 @@
 import request from 'supertest';
-import { app } from '../src/app';
+import { app } from '../app';
 
-jest.mock("../src/controllers/webhookController", () => ({
+jest.mock("../controllers/webhookController", () => ({
   verifyWebhook: jest.fn((req, res) => {
     res.status(200).send('OK');
   })
 }));
 
-jest.mock('../src/middlewares/redisClient', () => ({
+jest.mock('../middlewares/redisClient', () => ({
   on: jest.fn(),
   get: jest.fn(),
   set: jest.fn(),

@@ -1,9 +1,9 @@
-import { MessageController } from '../../src/controllers/messageController';
-import { ChatbotService } from '../../src/services/chatbotService';
+import { MessageController } from '../../controllers/messageController';
+import { ChatbotService } from '../../services/chatbotService';
 
 // mock do ChatbotService
-jest.mock('../../src/services/chatbotService');
-jest.mock('../../src/middlewares/redisClient', () => ({
+jest.mock('../../services/chatbotService');
+jest.mock('../../middlewares/redisClient', () => ({
   on: jest.fn(),
   get: jest.fn(),
   set: jest.fn(),

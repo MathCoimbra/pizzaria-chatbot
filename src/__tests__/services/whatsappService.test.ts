@@ -1,9 +1,9 @@
-import { WhatsappService } from "../../src/services/whatsappService";
-import { WhatsAppMessage } from "../../src/types/whatsapp";
-import redisClient from "../../src/middlewares/redisClient";
-import { whatsappApi } from "../../src/middlewares/whatsappApi";
+import { WhatsappService } from "../../services/whatsappService";
+import { WhatsAppMessage } from "../../types/whatsapp";
+import redisClient from "../../middlewares/redisClient";
+import { whatsappApi } from "../../middlewares/whatsappApi";
 
-jest.mock("../../src/middlewares/redisClient", () => ({
+jest.mock("../../middlewares/redisClient", () => ({
   get: jest.fn(),
   hget: jest.fn().mockImplementation((key) => {
     const prices: any = {

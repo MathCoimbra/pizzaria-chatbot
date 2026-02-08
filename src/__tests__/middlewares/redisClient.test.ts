@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import redisClient from '../../src/middlewares/redisClient';
+import redisClient from '../../middlewares/redisClient';
 
 jest.mock('ioredis', () => {
   return {

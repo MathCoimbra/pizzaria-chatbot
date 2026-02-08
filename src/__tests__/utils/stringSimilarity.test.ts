@@ -1,4 +1,4 @@
-import { findBestMatch } from "../../utils/stringSimilarity";
+import { findBestMatch } from "../../../utils/stringSimilarity";
 
 describe('String similarity', () => {
   it('should return the best match', () => {

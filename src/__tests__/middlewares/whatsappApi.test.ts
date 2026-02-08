@@ -14,7 +14,7 @@ describe('Whatsapp Api Connection', () => {
     process.env.WHATSAPP_API_URL = 'https://fake.api';
     process.env.WHATSAPP_ACCESS_TOKEN = 'token123';
 
-    const { whatsappApi } = require('../../src/middlewares/whatsappApi');
+    const { whatsappApi } = require('../../middlewares/whatsappApi');
 
     whatsappApi.get('/test-endpoint');
 

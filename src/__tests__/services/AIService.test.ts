@@ -1,4 +1,4 @@
-import { AIService } from "../../src/services/AIService";
+import { AIService } from "../../services/AIService";
 
 jest.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({

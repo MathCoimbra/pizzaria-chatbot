@@ -1,4 +1,4 @@
-import { verifyWebhook } from "../../src/controllers/webhookController";
+import { verifyWebhook } from "../../controllers/webhookController";
 
 describe('Webhook Controller', () => {
   let mockReq: any;
@@ -23,7 +23,7 @@ describe('Webhook Controller', () => {
     jest.clearAllMocks();
   });
 
-  jest.spyOn(require("../../src/controllers/webhookController"), 'verifyWebhook');
+  jest.spyOn(require("../../controllers/webhookController"), 'verifyWebhook');
 
   it('should return a correct token', () => {
 
