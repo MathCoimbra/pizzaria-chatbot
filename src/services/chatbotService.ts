@@ -21,7 +21,7 @@ export class ChatbotService {
         res.sendStatus(200); // responde com sucesso para evitar novas tentativas do whatsapp
         return;
       }
-      // validação para ignorar mensagens do bot e trazer somente mensagens externas
+      // validação para ignorar mensagens  do bot e trazer somente mensagens externas
       else if (body.entry[0].changes[0].value.messages[0].from === process.env.BOT_NUMBER) {
         console.log("Mensagem recebida do bot, ignorando...");
         res.sendStatus(200);
@@ -268,6 +268,7 @@ export class ChatbotService {
           return;
         }
       }
+
     }
   }
 
@@ -279,19 +280,25 @@ export class ChatbotService {
       if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
         if (idItem?.toUpperCase() === "PIZZA-ID" || userOrder?.toUpperCase() === "PIZZA") {
           await redisClient.set(userStateKey, JSON.stringify({ "step": "PIZZA_MENU" }), 'EX', 86400);
+          return;
         }
         if (idItem?.toUpperCase() === "FOGAZZA-ID" || userOrder?.toUpperCase() === "FOGAZZA") {
           await redisClient.set(userStateKey, JSON.stringify({ "step": "FOGAZZA_MENU" }), 'EX', 86400);
+          return;
         }
         if (idItem?.toUpperCase() === "PIZZAFOGAZZA-ID" || userOrder?.toUpperCase() === "PIZZA E FOGAZZA") {
           await redisClient.set(userStateKey, JSON.stringify({ "step": "PF_PIZZA_MENU" }), 'EX', 86400);
+          return;
         }
       }
       if (userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
-        redisClient.set(userStateKey, JSON.stringify({ "step": "PF_FOGAZZA_MENU" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "PF_FOGAZZA_MENU" }), 'EX', 86400);
+        return;
       }
+
     } catch (error: any) {
-      throw new Error('Não entendi sua solicitação, por favor selecione uma das opções ou digite 🙂');
+      throw new Error('Houve um problema no processamento da sua solicitação, por favor selecione uma das opções ou digite novamente 🙂');
     }
+    throw new Error('Não consegui entender sua escolha, por favor selecione uma das opções ou digite novamente 🙂');
   }
 }
