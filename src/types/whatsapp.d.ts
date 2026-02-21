@@ -25,6 +25,13 @@ export type Message = {
   interactive: Interactive;
 };
 
+export type Status = {
+  id: string;
+  status: string;
+  timestamp: string;
+  recipient_id: string;
+};
+
 export type Interactive = {
   list_reply: {
     id: string;
@@ -42,6 +49,7 @@ export type Change = {
     metadata: Metadata;
     contacts: Contact[];
     messages: Message[];
+    statuses: Status[];
   };
   field: string;
 };

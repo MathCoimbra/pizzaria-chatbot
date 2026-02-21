@@ -14,38 +14,49 @@ export class ChatbotService {
       // verifica se há entradas e mensagens válidas
       const entry = body?.entry?.[0];
       const changes = entry?.changes?.[0];
+      const statuses = changes?.value?.statuses?.[0];
       const messages = changes?.value?.messages?.[0];
+      const messageId = messages.id;
 
-      if (!entry || !changes || !messages) {
+      if (!entry || !changes || !messages || statuses) {
         console.log('Evento ignorado: Estrutura do corpo inválida ou sem mensagens.');
         res.sendStatus(200); // responde com sucesso para evitar novas tentativas do whatsapp
         return;
       }
-      // validação para ignorar mensagens  do bot e trazer somente mensagens externas
-      else if (body.entry[0].changes[0].value.messages[0].from === process.env.BOT_NUMBER) {
+
+      // validação para ignorar mensagens do bot e trazer somente mensagens externas
+      if (body.entry[0].changes[0].value.messages[0].from === process.env.BOT_NUMBER) {
         console.log("Mensagem recebida do bot, ignorando...");
         res.sendStatus(200);
         return;
+      }
+      /* validar messageID pra evitar duplicidade nas mensagens caso tenha alguma indisponibilidade */
+      const alreadyProcessed = await redisClient.get(`msg:${messageId}`);
+      if (alreadyProcessed) {
+        res.sendStatus(200);
+        return;
+      }
+      await redisClient.set(`msg:${messageId}`, "1", "EX", 3600);
+
+      /* inicia o fluxo */
+      const from = messages.from;
+      const userText = messages.text?.body;
+      const name = changes.value.contacts?.[0]?.profile?.name;
+      const options = messages.interactive;
+      console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
+
+      // key para controle de estado do usuário
+      const userStateKey = `user${from}:state`;
+      const userState = await redisClient.get(userStateKey);
+
+      // verifica se é a primeira interação do usuário
+      if (!userState) {
+        await WhatsappService.sendMessage(WhatsappService.mountItemChoiceMessage(from, WhatsappService.getWelcomeMessage(name)));
+        await redisClient.set(userStateKey, JSON.stringify({ "step": "CHOOSE_ITEM" }), 'EX', 86400);
+        res.status(200).send('Mensagem de boas-vindas enviada com sucesso!');
+        return;
       } else {
-        const from = messages.from;
-        const userText = messages.text?.body;
-        const name = changes.value.contacts?.[0]?.profile?.name;
-        const options = messages.interactive;
-        console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
-
-        // key para controle de estado do usuário
-        const userStateKey = `user${from}:state`;
-        const userState = await redisClient.get(userStateKey);
-
-        // verifica se é a primeira interação do usuário
-        if (!userState) {
-          await WhatsappService.sendMessage(WhatsappService.mountItemChoiceMessage(from, WhatsappService.getWelcomeMessage(name)));
-          await redisClient.set(userStateKey, JSON.stringify({ "step": "CHOOSE_ITEM" }), 'EX', 86400);
-          res.status(200).send('Mensagem de boas-vindas enviada com sucesso!');
-          return;
-        } else {
-          await this.handleUserState(from, options, res, userText);
-        }
+        await this.handleUserState(from, options, res, userText);
       }
     } catch (error: any) {
       console.error('Erro ao enviar a mensagem: ', error.response?.data || error.message);
@@ -65,16 +76,6 @@ export class ChatbotService {
     if (userState) {
 
       const userStateJson: UserState = JSON.parse(userState);
-
-      if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
-
-        await this.handleItemSelection(interactive?.button_reply?.id, userText, userStateJson, userStateKey);
-
-        await WhatsappService.sendMessage(await WhatsappService.mountMenuMessage(from));
-        await WhatsappService.sendMessage(await WhatsappService.getOrderMessage(from));
-        res.status(200).send('Mensagens de cardápio e extra enviadas com sucesso!');
-        return;
-      }
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "YES-ID") {
 
@@ -105,6 +106,16 @@ export class ChatbotService {
           return;
         }
 
+      }
+
+      if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
+
+        await this.handleItemSelection(interactive?.button_reply?.id, userText, userStateJson, userStateKey);
+
+        await WhatsappService.sendMessage(await WhatsappService.mountMenuMessage(from));
+        await WhatsappService.sendMessage(await WhatsappService.getOrderMessage(from));
+        res.status(200).send('Mensagens de cardápio e extra enviadas com sucesso!');
+        return;
       }
 
       if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
@@ -173,12 +184,12 @@ export class ChatbotService {
         return;
       }
 
-      const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
-      console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
-
-      await redisClient.set(userStateKey, JSON.stringify({ "order": AIResponse }), 'EX', 86400);
-
       if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
+
+        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
+        console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+        await redisClient.set(userStateKey, JSON.stringify({ "order": AIResponse }), 'EX', 86400);
 
         if (AIResponse.pizza && AIResponse.pizza.length > 0) {
           for (const item of AIResponse.pizza) {
@@ -253,6 +264,11 @@ export class ChatbotService {
       }
 
       if (userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
+
+        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
+        console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+        await redisClient.set(userStateKey, JSON.stringify({ "order": AIResponse }), 'EX', 86400);
 
         if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
           for (const item of AIResponse.fogazza) {
