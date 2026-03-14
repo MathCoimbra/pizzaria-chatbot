@@ -16,11 +16,17 @@ export class ChatbotService {
       const changes = entry?.changes?.[0];
       const statuses = changes?.value?.statuses?.[0];
       const messages = changes?.value?.messages?.[0];
-      const messageId = messages.id;
 
       if (!entry || !changes || !messages || statuses) {
         console.log('Evento ignorado: Estrutura do corpo inválida ou sem mensagens.');
         res.sendStatus(200); // responde com sucesso para evitar novas tentativas do whatsapp
+        return;
+      }
+
+      const messageId = messages.id;
+      if (!messageId) {
+        console.log('Evento ignorado: mensagem sem id.');
+        res.sendStatus(200);
         return;
       }
 
@@ -86,7 +92,7 @@ export class ChatbotService {
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "PICKUP-ID") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_RESUME" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPizzeriaAddressMessage(from));
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagens de endereço e forma de pagamento enviadas com sucesso!');
@@ -120,8 +126,8 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
         userStateJson.address = userText;
+        userStateJson.step = "ORDER_RESUME";
         await redisClient.set(userStateKey, JSON.stringify(userStateJson), 'EX', 86400);
-        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_RESUME" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
         return;
@@ -129,14 +135,14 @@ export class ChatbotService {
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ADDRESS-ID") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_RESUME" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
         return;
 
       } else if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ADDRESS-EDIT-ID") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ "step": "ADDRESS_EDIT" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ADDRESS_EDIT" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getAddressMessage(from));
         res.status(200).send('Mensagem de endereço enviada com sucesso!');
         return;
@@ -166,7 +172,7 @@ export class ChatbotService {
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ORDER-EDIT-ID") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ "step": "ORDER_EDIT" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_EDIT" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getOrderEditMessage(from));
         res.status(200).send('Mensagem de endereço enviada com sucesso!');
         return;
@@ -177,6 +183,8 @@ export class ChatbotService {
         // IA do bot analisa e atualiza o pedido
         const AIResponse: Order = await AIService.editOrder(userText, userStateJson.order);
         console.log("AIResponse editOrder", JSON.stringify(AIResponse, null, 2));
+
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
 
         // após análise manda o pedido atualizado para confirmação novamente (repetindo o processo)
         await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
@@ -189,7 +197,7 @@ export class ChatbotService {
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
 
-        await redisClient.set(userStateKey, JSON.stringify({ "order": AIResponse }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
 
         if (AIResponse.pizza && AIResponse.pizza.length > 0) {
           for (const item of AIResponse.pizza) {
@@ -268,7 +276,7 @@ export class ChatbotService {
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
 
-        await redisClient.set(userStateKey, JSON.stringify({ "order": AIResponse }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
 
         if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
           for (const item of AIResponse.fogazza) {
@@ -295,20 +303,20 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
         if (idItem?.toUpperCase() === "PIZZA-ID" || userOrder?.toUpperCase() === "PIZZA") {
-          await redisClient.set(userStateKey, JSON.stringify({ "step": "PIZZA_MENU" }), 'EX', 86400);
+          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PIZZA_MENU" }), 'EX', 86400);
           return;
         }
         if (idItem?.toUpperCase() === "FOGAZZA-ID" || userOrder?.toUpperCase() === "FOGAZZA") {
-          await redisClient.set(userStateKey, JSON.stringify({ "step": "FOGAZZA_MENU" }), 'EX', 86400);
+          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "FOGAZZA_MENU" }), 'EX', 86400);
           return;
         }
         if (idItem?.toUpperCase() === "PIZZAFOGAZZA-ID" || userOrder?.toUpperCase() === "PIZZA E FOGAZZA") {
-          await redisClient.set(userStateKey, JSON.stringify({ "step": "PF_PIZZA_MENU" }), 'EX', 86400);
+          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_PIZZA_MENU" }), 'EX', 86400);
           return;
         }
       }
       if (userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
-        await redisClient.set(userStateKey, JSON.stringify({ "step": "PF_FOGAZZA_MENU" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_FOGAZZA_MENU" }), 'EX', 86400);
         return;
       }
 
