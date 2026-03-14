@@ -209,7 +209,7 @@ export class WhatsappService {
       to,
       type: 'text',
       text: {
-        body: `🧑‍🍳 Certo! Me envie a forma de pagamento por favor, aceitamos: \n\n💳 Cartão de crédito/débito (VISA, Mastercard, Maestro e Elo) \n💵 Dinheiro (informe se precisar de troco)\n📱 Pix (chave: celular) - ${process.env.PIX_NUMBER}`
+        body: `🧑‍🍳 Certo! Qual será a forma de pagamento por favor, aceitamos: \n\n📱 Pix \n💳 Cartão de crédito/débito (VISA, Mastercard, Maestro e Elo) \n💵 Dinheiro (informe se precisar de troco)`
       }
     };
   }
@@ -280,7 +280,7 @@ export class WhatsappService {
               type: 'reply',
               reply: {
                 id: 'address-edit-id',
-                title: 'Não, é outro endereço'
+                title: 'Não, é outro'
               }
             }
           ]
