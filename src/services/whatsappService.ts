@@ -61,7 +61,7 @@ export class WhatsappService {
     return `🥟 *Cardápio de Fogazzas:*\n\n${fogazzaMenu}`;
   }
 
-  static async mountMenuMessage(to: string): Promise<WhatsAppMessage> {
+  static async getMenuMessage(to: string): Promise<WhatsAppMessage> {
 
     const message = {
       messaging_product: 'whatsapp',
@@ -365,6 +365,17 @@ export class WhatsappService {
     };
   }
 
+  static async getPaymentErrorMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Não consegui identificar a forma de pagamento, por favor digite uma das seguintes opções: Cartão de crédito, Cartão de débito, Dinheiro ou Pix 🙂`
+      }
+    };
+  }
+
   static async getOrderValidationMessage(to: string, order: string, orderPrice: number): Promise<WhatsAppMessage> {
 
     return {
@@ -411,7 +422,7 @@ export class WhatsappService {
     return halfItemPrice;
   }
 
-  static async getOrderPrice(order: Order): Promise<number> {
+  static async getOrderPrice(order: Order, userStateKey: string, userStateJson: UserState): Promise<number> {
 
     let orderPrice = 0;
 
@@ -443,39 +454,29 @@ export class WhatsappService {
       }
     }
 
+    await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, orderPrice }), 'EX', 86400);
+
     return orderPrice;
   }
+  static async getSummaryMessage(to: string, userStateJson: UserState): Promise<WhatsAppMessage> {
 
-  static async mountOrderSummaryMessage(to: string, text?: string): Promise<WhatsAppMessage> {
-    return {
+    const message = {
       messaging_product: 'whatsapp',
       to,
-      type: 'interactive',
-      interactive: {
-        type: 'button',
-        body: {
-          text,
-        },
-        action: {
-          buttons: [
-            {
-              type: 'reply',
-              reply: {
-                id: 'confirm-id',
-                title: 'Confirmar'
-              }
-            },
-            {
-              type: 'reply',
-              reply: {
-                id: 'cancel-id',
-                title: 'Cancelar'
-              }
-            }
-          ]
-        }
+      type: 'text',
+      text: {
+        body: `✅ *Pedido confirmado!*
+
+🧾 *Resumo:*
+• Valor total: R$ ${userStateJson.orderPrice.toFixed(2)}
+• Forma de pagamento: ${userStateJson.paymentMethod === "Pix" ? "Pix, nossa chave para pagamento é: " + process.env.PIX_NUMBER : userStateJson.paymentMethod}
+• Tempo estimado de entrega: 40 minutos
+
+Obrigado pela preferência 🍕`
       }
     };
+
+    return message;
   }
 
   static async sendMessage(payload: WhatsAppMessage): Promise<void> {

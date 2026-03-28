@@ -92,7 +92,7 @@ export class ChatbotService {
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "PICKUP-ID") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "CHECK_PAYMENT" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPizzeriaAddressMessage(from));
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagens de endereço e forma de pagamento enviadas com sucesso!');
@@ -118,7 +118,7 @@ export class ChatbotService {
 
         await this.handleItemSelection(interactive?.button_reply?.id, userText, userStateJson, userStateKey);
 
-        await WhatsappService.sendMessage(await WhatsappService.mountMenuMessage(from));
+        await WhatsappService.sendMessage(await WhatsappService.getMenuMessage(from));
         await WhatsappService.sendMessage(await WhatsappService.getOrderMessage(from));
         res.status(200).send('Mensagens de cardápio e extra enviadas com sucesso!');
         return;
@@ -126,7 +126,7 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
         userStateJson.address = userText;
-        userStateJson.step = "ORDER_RESUME";
+        userStateJson.step = "CHECK_PAYMENT";
         await redisClient.set(userStateKey, JSON.stringify(userStateJson), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
@@ -135,7 +135,7 @@ export class ChatbotService {
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "ADDRESS-ID") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "CHECK_PAYMENT" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
         return;
@@ -148,9 +148,21 @@ export class ChatbotService {
         return;
       }
 
-      if (userStateJson.step.toUpperCase() === "ORDER_RESUME") {
 
-        // bot manda mensagem final agradecendo, informando o valor total do pedido, forma de pagamento e um tempo de entrega
+      if (userStateJson.step.toUpperCase() === "CHECK_PAYMENT") {
+
+        const userPayment = findBestMatch(userText, ['Cartão de crédito', 'Cartão de débito', 'Dinheiro', 'Pix']);
+        if (userPayment != null) {
+          userStateJson.paymentMethod = userPayment;
+          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
+          await WhatsappService.sendMessage(await WhatsappService.getSummaryMessage(from, userStateJson));
+          res.status(200).send('Mensagem de resumo do pedido enviada com sucesso!');
+          return;
+        } else {
+          await WhatsappService.sendMessage(await WhatsappService.getPaymentErrorMessage(from));
+          res.status(200).send('Mensagem de forma de pagamento inválida enviada com sucesso!');
+          return;
+        }
       }
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "NO-ID") {
@@ -187,7 +199,7 @@ export class ChatbotService {
         await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
 
         // após análise manda o pedido atualizado para confirmação novamente (repetindo o processo)
-        await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+        await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, userStateKey, userStateJson)));
         res.status(200).send('Pedido processado com sucesso!');
         return;
       }
@@ -265,7 +277,7 @@ export class ChatbotService {
             }
 
           }
-          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, userStateKey, userStateJson)));
           res.status(200).send('Pedido processado com sucesso!');
           return;
         }
@@ -287,7 +299,7 @@ export class ChatbotService {
             }
           }
 
-          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse)));
+          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, userStateKey, userStateJson)));
           res.status(200).send('Pedido processado com sucesso!');
           return;
         }
