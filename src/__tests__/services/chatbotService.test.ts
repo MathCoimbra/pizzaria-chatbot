@@ -149,9 +149,9 @@ describe('ChatbotService', () => {
         .spyOn(ChatbotService as any, "handleUserState")
         .mockResolvedValue(undefined);
 
-      (redisClient.get as jest.Mock).mockResolvedValue(
-        JSON.stringify({ step: "CHOOSE_ITEM" })
-      );
+      (redisClient.get as jest.Mock)
+        .mockResolvedValueOnce(null) // msg not already processed
+        .mockResolvedValueOnce(JSON.stringify({ step: "CHOOSE_ITEM" })); // user state exists
 
       const body: any = {
         entry: [

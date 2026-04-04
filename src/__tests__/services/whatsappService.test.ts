@@ -151,7 +151,7 @@ describe("WhatsappService", () => {
     it("should return address message", async () => {
       process.env.PIZZERIA_ADDRESS = "Rua Teste, 123";
       const msg: any = await WhatsappService.getPizzeriaAddressMessage(to);
-      expect(msg.text.body).toContain("Nossa pizzaria fica localizada na Rua Teste, 123");
+      expect(msg.text.body).toContain("🧑‍🍳 Ok, nossa pizzaria fica localizada na Rua Teste, 123");
     });
   });
 
@@ -281,7 +281,7 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
+      const price = await WhatsappService.getOrderPrice(order, "");
       expect(price).toBe(45);
     });
 
@@ -299,7 +299,7 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
+      const price = await WhatsappService.getOrderPrice(order, "");
       expect(price).toBe(65);
     });
 
@@ -316,7 +316,7 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
+      const price = await WhatsappService.getOrderPrice(order, "");
       expect(price).toBe(25);
     });
 
@@ -332,7 +332,7 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
+      const price = await WhatsappService.getOrderPrice(order, "");
       expect(price).toBe(7);
     });
   });
