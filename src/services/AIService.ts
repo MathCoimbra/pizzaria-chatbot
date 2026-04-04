@@ -105,7 +105,7 @@ export class AIService {
 
     let prompt = `Você é responsável por atualizar um pedido em formato JSON
         Pedido atual:
-        ${order}
+        ${JSON.stringify(order)}
         Instrução do cliente para edição:
         ${userMessage}
         Siga essa tipagem:
