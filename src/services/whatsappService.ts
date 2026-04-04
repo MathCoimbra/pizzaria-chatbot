@@ -160,12 +160,26 @@ export class WhatsappService {
   }
 
   static async getOrderMessage(to: string): Promise<WhatsAppMessage> {
+
+    let body;
+    const userStateKey = `user${to}:state`;
+    const userState = await redisClient.get(userStateKey);
+
+    const pizzaBody = `🧑‍🍳 Por favor, envie seu pedido em uma única mensagem de texto para que eu consiga entender tudo direitinho, caso for pizza, não esqueça de informar o tamanho (grande ou broto) 🙂 \nExemplo: Quero uma pizza grande de calabresa com borda de catupiry e uma Coca-Cola`;
+
+    const fogazzaBody = `🧑‍🍳 Por favor, envie seu pedido de fogazza em uma única mensagem de texto para que eu consiga entender tudo direitinho 🙂 \nExemplo: Quero uma fogazza de frango com catupiry e uma Coca-Cola`;
+
+    if (userState) {
+      const userStateJson: UserState = JSON.parse(userState);
+      body = userStateJson.step.toUpperCase() === "FOGAZZA_MENU" ? fogazzaBody : pizzaBody;
+    }
+
     return {
       messaging_product: 'whatsapp',
       to,
       type: 'text',
       text: {
-        body: `🧑‍🍳 Por favor, envie seu pedido em uma única mensagem de texto para que eu consiga entender tudo direitinho, caso for pizza, não esqueça de informar o tamanho (grande ou broto) 🙂 \nExemplo: Quero uma pizza grande de calabresa com borda de catupiry e uma Coca-Cola`
+        body
       }
     };
   }
@@ -198,7 +212,7 @@ export class WhatsappService {
       to,
       type: 'text',
       text: {
-        body: `🧑‍🍳 Certo! Nossa pizzaria fica localizada na ${process.env.PIZZERIA_ADDRESS}`
+        body: `🧑‍🍳 Ok, nossa pizzaria fica localizada na ${process.env.PIZZERIA_ADDRESS}`
       }
     };
   }
@@ -209,7 +223,7 @@ export class WhatsappService {
       to,
       type: 'text',
       text: {
-        body: `🧑‍🍳 Certo! Qual será a forma de pagamento por favor, aceitamos: \n\n📱 Pix \n💳 Cartão de crédito/débito (VISA, Mastercard, Maestro e Elo) \n💵 Dinheiro (informe se precisar de troco)`
+        body: `🧑‍🍳 Qual será a forma de pagamento por favor, aceitamos: \n\n📱 Pix \n💳 Cartão de crédito/débito (VISA, Mastercard, Maestro e Elo) \n💵 Dinheiro`
       }
     };
   }
@@ -422,9 +436,11 @@ export class WhatsappService {
     return halfItemPrice;
   }
 
-  static async getOrderPrice(order: Order, userStateKey: string, userStateJson: UserState): Promise<number> {
+  static async getOrderPrice(order: Order, to: string): Promise<number> {
 
     let orderPrice = 0;
+    const userStateKey = `user${to}:state`;
+    const userState = await redisClient.get(userStateKey);
 
     if (order.pizza && order.pizza.length !== 0) {
       for (const item of order.pizza) {
@@ -454,7 +470,10 @@ export class WhatsappService {
       }
     }
 
-    await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, orderPrice }), 'EX', 86400);
+    if (userState) {
+      const userStateJson: UserState = JSON.parse(userState);
+      await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, orderPrice }), 'EX', 86400);
+    }
 
     return orderPrice;
   }

@@ -106,7 +106,7 @@ export class ChatbotService {
           res.status(200).send('Mensagem de validação de endereço enviada com sucesso!');
           return;
         } else {
-          await redisClient.set(userStateKey, JSON.stringify({ "step": "ADDRESS" }), 'EX', 86400);
+          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "step": "ADDRESS" }), 'EX', 86400);
           await WhatsappService.sendMessage(await WhatsappService.getAddressMessage(from));
           res.status(200).send('Mensagem de endereço enviada com sucesso!');
           return;
@@ -127,7 +127,7 @@ export class ChatbotService {
       if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
         userStateJson.address = userText;
         userStateJson.step = "CHECK_PAYMENT";
-        await redisClient.set(userStateKey, JSON.stringify(userStateJson), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson}), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
         return;
@@ -196,10 +196,10 @@ export class ChatbotService {
         const AIResponse: Order = await AIService.editOrder(userText, userStateJson.order);
         console.log("AIResponse editOrder", JSON.stringify(AIResponse, null, 2));
 
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, order: AIResponse }), 'EX', 86400);
 
         // após análise manda o pedido atualizado para confirmação novamente (repetindo o processo)
-        await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, userStateKey, userStateJson)));
+        await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, from)));
         res.status(200).send('Pedido processado com sucesso!');
         return;
       }
@@ -209,7 +209,7 @@ export class ChatbotService {
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
 
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, order: AIResponse }), 'EX', 86400);
 
         if (AIResponse.pizza && AIResponse.pizza.length > 0) {
           for (const item of AIResponse.pizza) {
@@ -277,7 +277,7 @@ export class ChatbotService {
             }
 
           }
-          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, userStateKey, userStateJson)));
+          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, from)));
           res.status(200).send('Pedido processado com sucesso!');
           return;
         }
@@ -288,7 +288,7 @@ export class ChatbotService {
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
 
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "order": AIResponse }), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, order: AIResponse }), 'EX', 86400);
 
         if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
           for (const item of AIResponse.fogazza) {
@@ -299,7 +299,7 @@ export class ChatbotService {
             }
           }
 
-          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, userStateKey, userStateJson)));
+          await WhatsappService.sendMessage(await WhatsappService.getOrderValidationMessage(from, AIResponse.resumo, await WhatsappService.getOrderPrice(AIResponse, from)));
           res.status(200).send('Pedido processado com sucesso!');
           return;
         }
