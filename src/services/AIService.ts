@@ -6,6 +6,44 @@ export class AIService {
   // Método para processar o pedido de pizza
   static async processOrder(userMessage: string, userState: string): Promise<any> {
 
+    if (process.env.MOCK_AI_PIZZA === "true") {
+      return {
+        pizza: [
+          {
+            sabor: "calabresa",
+            tamanho: "grande",
+            borda: "catupiry"
+          }
+        ],
+        fogazza: [],
+        bebida: [
+          {
+            tipo: "coca"
+          }
+        ],
+        observacoes: "Pedido simulado",
+        resumo: "Pizza calabresa grande com borda catupiry + coca"
+      };
+    }
+
+    if (process.env.MOCK_AI_FOGAZZA === "true") {
+      return {
+        "fogazza": [
+          {
+            "sabor": "frango com catupiry",
+            "borda": null
+          }
+        ],
+        "bebida": [
+          {
+            "tipo": "Coca-Cola"
+          }
+        ],
+        "observacoes": null,
+        "resumo": "Uma fogazza de frango com catupiry e uma Coca-Cola."
+      };
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: process.env.AI_MODEL || "" });
 
@@ -56,6 +94,11 @@ export class AIService {
 
   // Método para editar o pedido de pizza
   static async editOrder(userMessage: string, order: Order): Promise<any> {
+
+    if (process.env.MOCK_AI_EDIT === "true") {
+      // Mock de edição: retorna o pedido sem alterações (ou com edição simples, se preferir)
+      return order;
+    }
 
     const genAI = new GoogleGenerativeAI(process.env.AI_API_KEY || "");
     const model = genAI.getGenerativeModel({ model: process.env.AI_MODEL || "" });
