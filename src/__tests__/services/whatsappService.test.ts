@@ -5,6 +5,7 @@ import { whatsappApi } from "../../middlewares/whatsappApi";
 
 jest.mock("../../middlewares/redisClient", () => ({
   get: jest.fn(),
+  set: jest.fn(),
   hget: jest.fn().mockImplementation((key) => {
     const prices: any = {
       'pizza:calabresa:grande': {
@@ -64,37 +65,37 @@ describe("WhatsappService", () => {
   describe("mountMenuMessage", () => {
     it("should return default message if no user state", async () => {
       (redisClient.get as jest.Mock).mockResolvedValue(null);
-      const msg: any = await WhatsappService.mountMenuMessage(to);
+      const msg: any = await WhatsappService.getMenuMessage(to);
       expect(msg.text.body).toContain("Não entendi qual é o seu pedido");
     });
 
     it("should return pizza menu if user state is PIZZA_MENU", async () => {
       (redisClient.get as jest.Mock).mockResolvedValue(JSON.stringify({ step: "PIZZA_MENU" }));
-      const msg: any = await WhatsappService.mountMenuMessage(to);
+      const msg: any = await WhatsappService.getMenuMessage(to);
       expect(msg.text.body).toContain(WhatsappService.getPizzaMenuMessage());
     });
 
     it("should return fogazza menu if user state is FOGAZZA_MENU", async () => {
       (redisClient.get as jest.Mock).mockResolvedValue(JSON.stringify({ step: "FOGAZZA_MENU" }));
-      const msg: any = await WhatsappService.mountMenuMessage(to);
+      const msg: any = await WhatsappService.getMenuMessage(to);
       expect(msg.text.body).toContain(WhatsappService.getFogazzaMenuMessage());
     });
 
     it("should return pizza menu if user state is PF_PIZZA_MENU", async () => {
       (redisClient.get as jest.Mock).mockResolvedValue(JSON.stringify({ step: "PF_PIZZA_MENU" }));
-      const msg: any = await WhatsappService.mountMenuMessage(to);
+      const msg: any = await WhatsappService.getMenuMessage(to);
       expect(msg.text.body).toContain(WhatsappService.getPizzaMenuMessage());
     });
 
     it("should return fogazza menu if user state is PF_FOGAZZA_MENU", async () => {
       (redisClient.get as jest.Mock).mockResolvedValue(JSON.stringify({ step: "PF_FOGAZZA_MENU" }));
-      const msg: any = await WhatsappService.mountMenuMessage(to);
+      const msg: any = await WhatsappService.getMenuMessage(to);
       expect(msg.text.body).toContain(WhatsappService.getFogazzaMenuMessage());
     });
 
     it("should not alter message if step is not recognized", async () => {
       (redisClient.get as jest.Mock).mockResolvedValue(JSON.stringify({ step: "UNKNOWN_STEP" }));
-      const msg: any = await WhatsappService.mountMenuMessage(to);
+      const msg: any = await WhatsappService.getMenuMessage(to);
       expect(msg.text.body).toContain("Não entendi qual é o seu pedido 🤔 Poderia repetir por favor? 🙂");
     });
 
@@ -156,10 +157,8 @@ describe("WhatsappService", () => {
 
   describe("getPaymentMethodMessage", () => {
     it("should return payment method message", async () => {
-      process.env.PIX_NUMBER = "11999999999";
       const msg: any = await WhatsappService.getPaymentMethodMessage(to);
-      expect(msg.text.body).toContain("Me envie a forma de pagamento");
-      expect(msg.text.body).toContain(process.env.PIX_NUMBER);
+      expect(msg.text.body).toContain("Qual será a forma de pagamento por favor");
     });
   });
 
@@ -245,11 +244,12 @@ describe("WhatsappService", () => {
     });
   });
 
-  describe("mountOrderSummaryMessage", () => {
+  describe("getSummaryMessage", () => {
     it("should return order summary message", async () => {
-      const msg: any = await WhatsappService.mountOrderSummaryMessage(to, "x");
+      (redisClient.get as jest.Mock).mockResolvedValue(null);
+      const msg: any = await WhatsappService.getSummaryMessage(to, { orderPrice: 65, paymentMethod: "Pix" } as any);
       expect(msg.to).toBe(to);
-      expect(msg.interactive.body.text).toContain("x");
+      expect(msg.text.body).toContain("65.00");
     });
   });
 
@@ -269,6 +269,8 @@ describe("WhatsappService", () => {
   describe("getOrderPrice", () => {
     it("should return pizza price", async () => {
 
+      (redisClient.set as jest.Mock).mockResolvedValue(null);
+
       const order: any = {
         pizza: [
           {
@@ -279,11 +281,13 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order);
+      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
       expect(price).toBe(45);
     });
 
     it("should return half and half pizza price", async () => {
+
+      (redisClient.set as jest.Mock).mockResolvedValue(null);
 
       const order: any = {
         pizza: [
@@ -295,11 +299,13 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order);
+      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
       expect(price).toBe(65);
     });
 
     it("should return fogazza price", async () => {
+
+      (redisClient.set as jest.Mock).mockResolvedValue(null);
 
       const order: any = {
         fogazza: [
@@ -310,11 +316,13 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order);
+      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
       expect(price).toBe(25);
     });
 
     it("should return bebida price", async () => {
+
+      (redisClient.set as jest.Mock).mockResolvedValue(null);
 
       const order: any = {
         bebida: [
@@ -324,7 +332,7 @@ describe("WhatsappService", () => {
         ],
       };
 
-      const price = await WhatsappService.getOrderPrice(order);
+      const price = await WhatsappService.getOrderPrice(order, "", {} as any);
       expect(price).toBe(7);
     });
   });

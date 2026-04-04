@@ -45,6 +45,7 @@ describe('ChatbotService', () => {
                 value: {
                   messages: [
                     {
+                      id: "123",
                       from: "5511888888888",
                       text: undefined
                     },
@@ -73,6 +74,7 @@ describe('ChatbotService', () => {
                 value: {
                   messages: [
                     {
+                      id: "123",
                       from: "5511888888888",
                       text: { body: "Oi" },
                     },
@@ -115,6 +117,7 @@ describe('ChatbotService', () => {
                   ],
                   messages: [
                     {
+                      id: "123",
                       from: "5511999999999",
                       text: { body: "Oi" },
                     },
@@ -158,6 +161,7 @@ describe('ChatbotService', () => {
                 value: {
                   messages: [
                     {
+                      id: "123",
                       from: "5511999999999",
                       text: { body: "Calabresa" },
                     },
@@ -200,6 +204,7 @@ describe('ChatbotService', () => {
                 value: {
                   messages: [
                     {
+                      id: "123",
                       from: "5511999999999",
                       text: { body: "Oi" },
                     },
@@ -239,6 +244,7 @@ describe('ChatbotService', () => {
                 value: {
                   messages: [
                     {
+                      id: "123",
                       from: "5511999999999",
                       text: { body: "Oi" },
                     },
