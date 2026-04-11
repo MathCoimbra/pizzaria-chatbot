@@ -322,15 +322,15 @@ export class ChatbotService {
           await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "FOGAZZA_MENU" }), 'EX', 86400);
           return;
         }
-        if (idItem?.toUpperCase() === "PIZZAFOGAZZA-ID" || userOrder?.toUpperCase() === "PIZZA E FOGAZZA") {
-          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_PIZZA_MENU" }), 'EX', 86400);
-          return;
-        }
+        /*  if (idItem?.toUpperCase() === "PIZZAFOGAZZA-ID" || userOrder?.toUpperCase() === "PIZZA E FOGAZZA") {
+           await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_PIZZA_MENU" }), 'EX', 86400);
+           return;
+         } */
       }
-      if (userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_FOGAZZA_MENU" }), 'EX', 86400);
-        return;
-      }
+      /*  if (userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
+         await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_FOGAZZA_MENU" }), 'EX', 86400);
+         return;
+       } */
 
     } catch (error: any) {
       throw new Error('Houve um problema no processamento da sua solicitação, por favor selecione uma das opções ou digite novamente 🙂');

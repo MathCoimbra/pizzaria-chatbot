@@ -34,13 +34,13 @@ export class WhatsappService {
                 title: 'Fogazza'
               }
             },
-            {
+            /* {
               type: 'reply',
               reply: {
                 id: 'pizzafogazza-id',
                 title: 'Pizza e Fogazza'
               }
-            }
+            } */
           ]
         }
       }
