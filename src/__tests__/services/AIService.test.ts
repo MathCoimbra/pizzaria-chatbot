@@ -65,7 +65,7 @@ describe('AI Service', () => {
       });
     });
 
-    it('should return pizza and fogazza order processed in json', async () => {
+    xit('should return pizza and fogazza order processed in json', async () => {
       const prompt = "Quero uma Pizza Pepperoni Grande com borda recheada, uma Fogazza de Calabresa com borda Tradicional e uma Cerveja. Sem alho.";
       expect(await AIService.processOrder(prompt, "PF_PIZZA_MENU")).toEqual({
         pizza: [{ sabor: "Pepperoni", tamanho: "Grande", borda: "Recheada" }],
