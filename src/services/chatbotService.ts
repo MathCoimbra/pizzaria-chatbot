@@ -116,7 +116,10 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
 
-        await this.handleItemSelection(interactive?.button_reply?.id, userText, userStateJson, userStateKey);
+        const itemSelected = await this.handleItemSelection(interactive?.button_reply?.id, userText, userStateJson, userStateKey, res, from);
+        if (!itemSelected) {
+          return;
+        }
 
         await WhatsappService.sendMessage(await WhatsappService.getMenuMessage(from));
         await WhatsappService.sendMessage(await WhatsappService.getOrderMessage(from));
@@ -127,7 +130,7 @@ export class ChatbotService {
       if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
         userStateJson.address = userText;
         userStateJson.step = "CHECK_PAYMENT";
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson}), 'EX', 86400);
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
         res.status(200).send('Mensagem de forma de pagamento enviada com sucesso!');
         return;
@@ -308,7 +311,7 @@ export class ChatbotService {
     }
   }
 
-  static async handleItemSelection(idItem: string, userText: string, userStateJson: UserState, userStateKey: string): Promise<void> {
+  static async handleItemSelection(idItem: string, userText: string, userStateJson: UserState, userStateKey: string, res: Response, from: string): Promise<boolean> {
     try {
       // método para identificar a melhor correspondência de texto, em caso de digitação errada
       const userOrder = findBestMatch(userText, ['Pizza', 'Fogazza', 'Pizza e Fogazza']);
@@ -316,25 +319,32 @@ export class ChatbotService {
       if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
         if (idItem?.toUpperCase() === "PIZZA-ID" || userOrder?.toUpperCase() === "PIZZA") {
           await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PIZZA_MENU" }), 'EX', 86400);
-          return;
+          return true;
         }
         if (idItem?.toUpperCase() === "FOGAZZA-ID" || userOrder?.toUpperCase() === "FOGAZZA") {
           await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "FOGAZZA_MENU" }), 'EX', 86400);
-          return;
+          return true;
         }
         /*  if (idItem?.toUpperCase() === "PIZZAFOGAZZA-ID" || userOrder?.toUpperCase() === "PIZZA E FOGAZZA") {
            await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_PIZZA_MENU" }), 'EX', 86400);
-           return;
+           return true;
          } */
       }
       /*  if (userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "PF_FOGAZZA_MENU" }), 'EX', 86400);
-         return;
+         return true;
        } */
 
+      await WhatsappService.sendMessage(await WhatsappService.getInvalidChoiceMessage(from));
+      res.status(200).send('Mensagem de escolha inválida enviada com sucesso!');
+      return false;
+
     } catch (error: any) {
-      throw new Error('Houve um problema no processamento da sua solicitação, por favor selecione uma das opções ou digite novamente 🙂');
+      console.error('Erro em handleItemSelection:', error.message);
+      await WhatsappService.sendMessage(await WhatsappService.getErrorMessage(from));
+      // Ainda retorna 200 para o WhatsApp (evita retry)
+      res.status(200).send('Erro ao processar solicação, mas mensagem enviada.');
+      return false;
     }
-    throw new Error('Não consegui entender sua escolha, por favor selecione uma das opções ou digite novamente 🙂');
   }
 }

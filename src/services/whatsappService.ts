@@ -498,6 +498,29 @@ Obrigado pela preferência 🍕`
     return message;
   }
 
+  static async getInvalidChoiceMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Desculpe, não consegui entender sua escolha \n Por favor, selecione uma das opções disponíveis ou escreva novamente`
+      }
+    };
+  }
+
+  static async getErrorMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Ocorreu um erro inesperado da nossa parte 😔 Por favor, tente novamente mais tarde ou entre em contato diretamente por esse mesmo telefone`
+      } 
+    };
+  }
+
+
   static async sendMessage(payload: WhatsAppMessage): Promise<void> {
     try {
 
