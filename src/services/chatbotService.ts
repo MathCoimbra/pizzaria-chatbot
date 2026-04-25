@@ -199,6 +199,12 @@ export class ChatbotService {
         const AIResponse: Order = await AIService.editOrder(userText, userStateJson.order);
         console.log("AIResponse editOrder", JSON.stringify(AIResponse, null, 2));
 
+        if (AIResponse.error) {
+          await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
+          res.status(200).send('Mensagem de erro ao editar pedido enviada com sucesso!');
+          return;
+        }
+
         await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, order: AIResponse }), 'EX', 86400);
 
         // após análise manda o pedido atualizado para confirmação novamente (repetindo o processo)
@@ -211,6 +217,12 @@ export class ChatbotService {
 
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+        if (AIResponse.error) {
+          await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
+          res.status(200).send('Mensagem de erro ao processar pedido enviada com sucesso!');
+          return;
+        }
 
         await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, order: AIResponse }), 'EX', 86400);
 
@@ -290,6 +302,12 @@ export class ChatbotService {
 
         const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+        if (AIResponse.error) {
+          await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
+          res.status(200).send('Mensagem de erro ao processar pedido enviada com sucesso!');
+          return;
+        }
 
         await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, order: AIResponse }), 'EX', 86400);
 

@@ -55,14 +55,14 @@ export class AIService {
       - \`bebida\`: Uma lista de objetos contendo \`tipo\`
       - \`observacoes\`: Qualquer informação extra que o cliente mencionou
       - \`resumo\`: Resumo amigável do pedido
-      Exemplo de entrada: "Quero uma pizza grande de calabresa com borda de catupiry, uma broto de portuguesa, uma pizza moda do cliente com mussarela, tomate e orégano. E um dolly coca. Pode caprichar no recheio!". Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
+      Exemplo de entrada: "Quero uma pizza grande de calabresa com borda de catupiry, uma broto de portuguesa, uma pizza moda do cliente com mussarela, tomate e orégano. E um dolly coca. Pode caprichar no recheio!". Caso a mensagem seja incompreensível, esteja fora de contexto, ou não contenha nenhum dado de pedido, retorne apenas: {"error": true}. Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
     } else if (userState.toUpperCase() === "FOGAZZA_MENU") {
       prompt = `Interprete a seguinte mensagem do usuário e extraia os dados do pedido. Retorne apenas um JSON estruturado com os seguintes campos:
       - \`fogazza\`: Uma lista de objetos contendo \`sabor\` e \`borda\`
       - \`bebida\`: Uma lista de objetos contendo \`tipo\`
       - \`observacoes\`: Qualquer informação extra que o cliente mencionou
       - \`resumo\`: Resumo amigável do pedido
-      Exemplo de entrada: "Quero uma fogazza de portuguesa com borda de catupiry. E um guaraná. Pode caprichar no recheio!". Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
+      Exemplo de entrada: "Quero uma fogazza de portuguesa com borda de catupiry. E um guaraná. Pode caprichar no recheio!". Caso a mensagem seja incompreensível, esteja fora de contexto, ou não contenha nenhum dado de pedido, retorne apenas: {"error": true}. Agora gere o JSON correspondente para a seguinte mensagem do usuário, sem adicionar explicações ou texto extra: "${userMessage}"`;
     } /* else if (userState.toUpperCase() === "PF_FOGAZZA_MENU" || userState.toUpperCase() === "PF_PIZZA_MENU") {
       prompt = `Interprete a seguinte mensagem do usuário e extraia os dados do pedido. Retorne apenas um JSON estruturado com os seguintes campos:
       - \`pizza\`: Uma lista de objetos contendo \`sabor\`, \`tamanho\` e \`borda\`(somente se for meia a meia, \`sabor\` será uma lista com 2 sabores)
@@ -88,7 +88,7 @@ export class AIService {
       return JSON.parse(cleanedResponse);
     } catch (error) {
       console.error("Erro ao converter resposta da IA para JSON:", error);
-      return null;
+      throw new Error('Erro ao converter resposta da IA para JSON');
     }
   }
 
@@ -126,7 +126,8 @@ export class AIService {
           observacoes: string;
           resumo: string;
         };
-        Retorne SOMENTE um JSON válido do tipo Order, sem explicações adicionais.`;
+        Retorne SOMENTE um JSON válido do tipo Order, sem explicações adicionais.
+        Caso a mensagem seja incompreensível, esteja fora de contexto, ou não contenha nenhum dado de pedido, retorne apenas: {"error": true}.`;
 
     // Fazendo a chamada para a IA
     const result = await model.generateContent(prompt);
@@ -142,7 +143,7 @@ export class AIService {
       return JSON.parse(cleanedResponse);
     } catch (error) {
       console.error("Erro ao converter resposta da IA para JSON:", error);
-      return null;
+      throw new Error("Erro ao converter resposta da IA para JSON");
     }
   }
 }

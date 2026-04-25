@@ -516,7 +516,18 @@ Obrigado pela preferência 🍕`
       type: 'text',
       text: {
         body: `Ocorreu um erro inesperado da nossa parte 😔 Por favor, tente novamente mais tarde ou entre em contato diretamente por esse mesmo telefone`
-      } 
+      }
+    };
+  }
+
+  static async getOrderErrorMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Desculpe, não consegui entender sua mensagem, pode repetir por favor?`
+      }
     };
   }
 
