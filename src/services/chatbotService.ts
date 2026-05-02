@@ -85,33 +85,45 @@ export class ChatbotService {
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "YES-ID") {
 
+        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "CHECK_DELIVERY" }), 'EX', 86400);
         await WhatsappService.sendMessage(await WhatsappService.getDeliveryValidationMessage(from));
         res.status(200).send('Mensagem de validação de entrega enviada com sucesso!');
         return;
       }
 
-      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "PICKUP-ID") {
+      if (userStateJson.step.toUpperCase() === "CHECK_DELIVERY") {
 
-        await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "CHECK_PAYMENT" }), 'EX', 86400);
-        await WhatsappService.sendMessage(await WhatsappService.getPizzeriaAddressMessage(from));
-        await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
-        res.status(200).send('Mensagens de endereço e forma de pagamento enviadas com sucesso!');
-        return;
-      }
+        const userDelivery = findBestMatch(userText, ['Entrega', 'Retirada']);
 
-      if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "DELIVERY-ID") {
+        if ((interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "PICKUP-ID") || userDelivery?.toUpperCase() === 'RETIRADA') {
 
-        if (userStateJson.address && userStateJson.address.length > 0) {
-          await WhatsappService.sendMessage(await WhatsappService.getAddressValidationMessage(from, userStateJson.address));
-          res.status(200).send('Mensagem de validação de endereço enviada com sucesso!');
-          return;
-        } else {
-          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "step": "ADDRESS" }), 'EX', 86400);
-          await WhatsappService.sendMessage(await WhatsappService.getAddressMessage(from));
-          res.status(200).send('Mensagem de endereço enviada com sucesso!');
+          await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "CHECK_PAYMENT" }), 'EX', 86400);
+          await WhatsappService.sendMessage(await WhatsappService.getPizzeriaAddressMessage(from));
+          await WhatsappService.sendMessage(await WhatsappService.getPaymentMethodMessage(from));
+          res.status(200).send('Mensagens de endereço e forma de pagamento enviadas com sucesso!');
           return;
         }
 
+        if ((interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "DELIVERY-ID") || userDelivery?.toUpperCase() === 'ENTREGA') {
+
+          if (userStateJson.address && userStateJson.address.length > 0) {
+            await WhatsappService.sendMessage(await WhatsappService.getAddressValidationMessage(from, userStateJson.address));
+            res.status(200).send('Mensagem de validação de endereço enviada com sucesso!');
+            return;
+          } else {
+            await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, "step": "ADDRESS" }), 'EX', 86400);
+            await WhatsappService.sendMessage(await WhatsappService.getAddressMessage(from));
+            res.status(200).send('Mensagem de endereço enviada com sucesso!');
+            return;
+          }
+
+        }
+
+        if (userText) {
+          await WhatsappService.sendMessage(await WhatsappService.getInvalidChoiceMessage(from));
+          res.status(200).send('Mensagem de opção inválida enviada com sucesso!');
+          return;
+        }
       }
 
       if (userStateJson.step.toUpperCase() === "CHOOSE_ITEM") {
@@ -128,6 +140,12 @@ export class ChatbotService {
       }
 
       if (userStateJson.step.toUpperCase() === "ADDRESS" || userStateJson.step.toUpperCase() === "ADDRESS_EDIT") {
+        if (!this.isValidAddress(userText)) {
+          await WhatsappService.sendMessage(await WhatsappService.getAddressErrorMessage(from));
+          res.status(200).send('Mensagem de endereço inválido enviada com sucesso!');
+          return;
+        }
+
         userStateJson.address = userText;
         userStateJson.step = "CHECK_PAYMENT";
         await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson }), 'EX', 86400);
@@ -154,9 +172,9 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "CHECK_PAYMENT") {
 
-        const userPayment = findBestMatch(userText, ['Cartão de crédito', 'Cartão de débito', 'Dinheiro', 'Pix']);
+        const userPayment = findBestMatch(userText, ['Cartão de crédito', 'Crédito', 'Cartão de débito', 'Débito','Dinheiro', 'Pix']);
         if (userPayment != null) {
-          userStateJson.paymentMethod = userPayment;
+          userStateJson.paymentMethod = userPayment;  
           await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
           await WhatsappService.sendMessage(await WhatsappService.getSummaryMessage(from, userStateJson));
           res.status(200).send('Mensagem de resumo do pedido enviada com sucesso!');
@@ -166,6 +184,10 @@ export class ChatbotService {
           res.status(200).send('Mensagem de forma de pagamento inválida enviada com sucesso!');
           return;
         }
+      }
+
+      if (userStateJson.step.toUpperCase() === "ORDER_RESUME") { 
+        // TODO: enviar resumo do pedido para o chefe
       }
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "NO-ID") {
@@ -327,6 +349,32 @@ export class ChatbotService {
       }
 
     }
+  }
+
+  static isValidAddress(address?: string): boolean {
+    if (!address) {
+      return false;
+    }
+
+    const normalized = address.trim();
+    if (normalized.length < 10) {
+      return false;
+    }
+
+    const hasNumber = /\d/.test(normalized);
+    const words = normalized
+      .toLowerCase()
+      .replace(/[.,;]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean);
+
+    const streetKeywords = [
+      'rua', 'avenida', 'av', 'travessa', 'trav', 'rodovia', 'rod', 'praça', 'praca',
+      'estrada', 'alameda', 'bairro', 'condominio', 'cond.', 'quadra', 'lote', 'bloco', 'conjunto'
+    ];
+
+    const hasStreetWord = words.some(word => findBestMatch(word, streetKeywords) != null);
+    return hasNumber && (hasStreetWord || words.length >= 3);
   }
 
   static async handleItemSelection(idItem: string, userText: string, userStateJson: UserState, userStateKey: string, res: Response, from: string): Promise<boolean> {

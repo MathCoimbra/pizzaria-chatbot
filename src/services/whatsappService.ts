@@ -498,13 +498,24 @@ Obrigado pela preferência 🍕`
     return message;
   }
 
+  static async getAddressErrorMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Parece que o endereço está incompleto ou difícil de entender. Por favor, envie o endereço completo com rua, número e referência novamente.`
+      }
+    };
+  }
+
   static async getInvalidChoiceMessage(to: string): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
       to,
       type: 'text',
       text: {
-        body: `Desculpe, não consegui entender sua escolha \n Por favor, selecione uma das opções disponíveis ou escreva novamente`
+        body: `Desculpe, não consegui entender sua escolha\nPor favor, selecione uma das opções disponíveis ou escreva novamente`
       }
     };
   }
