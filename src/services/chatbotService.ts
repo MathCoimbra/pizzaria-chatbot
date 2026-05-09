@@ -62,7 +62,7 @@ export class ChatbotService {
         res.status(200).send('Mensagem de boas-vindas enviada com sucesso!');
         return;
       } else {
-        await this.handleUserState(from, options, res, userText);
+        await this.handleUserState(from, options, res, userText, name);
       }
     } catch (error: any) {
       console.error('Erro ao enviar a mensagem: ', error.response?.data || error.message);
@@ -70,7 +70,7 @@ export class ChatbotService {
     }
   }
 
-  static async handleUserState(from: string, interactive: Interactive, res: Response, userText: string): Promise<void> {
+  static async handleUserState(from: string, interactive: Interactive, res: Response, userText: string, name: string): Promise<void> {
 
     const userStateKey = `user${from}:state`;
     const userState = await redisClient.get(userStateKey);
@@ -172,22 +172,21 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "CHECK_PAYMENT") {
 
-        const userPayment = findBestMatch(userText, ['Cartão de crédito', 'Crédito', 'Cartão de débito', 'Débito','Dinheiro', 'Pix']);
+        const userPayment = findBestMatch(userText, ['Cartão de crédito', 'Crédito', 'Cartão de débito', 'Débito', 'Dinheiro', 'Pix']);
         if (userPayment != null) {
-          userStateJson.paymentMethod = userPayment;  
+          userStateJson.paymentMethod = userPayment;
+
           await redisClient.set(userStateKey, JSON.stringify({ ...userStateJson, step: "ORDER_RESUME" }), 'EX', 86400);
           await WhatsappService.sendMessage(await WhatsappService.getSummaryMessage(from, userStateJson));
-          res.status(200).send('Mensagem de resumo do pedido enviada com sucesso!');
+          await WhatsappService.sendMessage(await WhatsappService.getOrderResumeMessage(process.env.CHEF_NUMBER, userStateJson, name, from));
+          res.status(200).send('Pedido enviado com sucesso!');
           return;
+
         } else {
           await WhatsappService.sendMessage(await WhatsappService.getPaymentErrorMessage(from));
           res.status(200).send('Mensagem de forma de pagamento inválida enviada com sucesso!');
           return;
         }
-      }
-
-      if (userStateJson.step.toUpperCase() === "ORDER_RESUME") { 
-        // TODO: enviar resumo do pedido para o chefe
       }
 
       if (interactive && interactive.button_reply.id && interactive.button_reply.id.toUpperCase() === "NO-ID") {

@@ -498,6 +498,76 @@ Obrigado pela preferência 🍕`
     return message;
   }
 
+
+  static async getOrderResumeMessage(to: any, userStateJson: UserState, clientName: string, number: string): Promise<WhatsAppMessage> {
+    const { order, address, paymentMethod, orderPrice, step } = userStateJson;
+
+    const isPickup = step?.toUpperCase().includes('PICKUP') || !address;
+
+    let orderDetails = `🧾 *Novo pedido*\n\n`;
+
+    orderDetails += `👤 *Cliente:* ${clientName}\n\n`;
+    orderDetails += `📞 *Número:* ${number}\n\n`;
+
+    if (order.pizza && order.pizza.length > 0) {
+      orderDetails += `🍕 *Pizza(s):*\n`;
+      order.pizza.forEach((pizza, index) => {
+        const sabor = Array.isArray(pizza.sabor)
+          ? pizza.sabor.join(" e ")
+          : pizza.sabor;
+        orderDetails += `  ${index + 1}. ${sabor} (${pizza.tamanho})\n`;
+        if (pizza.borda && pizza.borda !== 'nenhuma') {
+          orderDetails += `     └─ Borda: ${pizza.borda}\n`;
+        }
+      });
+      orderDetails += `\n`;
+    }
+
+    if (order.fogazza && order.fogazza.length > 0) {
+      orderDetails += `🥟 *Fogazza(s):*\n`;
+      order.fogazza.forEach((fogazza, index) => {
+        orderDetails += `  ${index + 1}. ${fogazza.sabor}\n`;
+        if (fogazza.borda && fogazza.borda !== 'nenhuma') {
+          orderDetails += `     └─ Borda: ${fogazza.borda}\n`;
+        }
+      });
+      orderDetails += `\n`;
+    }
+
+    if (order.bebida && order.bebida.length > 0) {
+      orderDetails += `🥤 *Bebida(s):*\n`;
+      order.bebida.forEach((bebida, index) => {
+        orderDetails += `  ${index + 1}. ${bebida.tipo}\n`;
+      });
+      orderDetails += `\n`;
+    }
+
+    if (order.observacoes && order.observacoes.trim() !== '') {
+      orderDetails += `📝 *Observações:*\n  ${order.observacoes}\n\n`;
+    }
+
+    if (isPickup) {
+      orderDetails += `🏪 Retirada no local\n\n`;
+    } else {
+      orderDetails += `🚗 Entrega em casa\n`;
+      orderDetails += `📍 *Endereço:* ${address}\n\n`;
+    }
+
+    orderDetails += `💳 *Pagamento:* ${paymentMethod}\n`;
+    orderDetails += `💰 *Valor:* R$ ${orderPrice.toFixed(2)}\n`;
+
+    const message = {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: orderDetails
+      }
+    };
+
+    return message;
+  }
+
   static async getAddressErrorMessage(to: string): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
