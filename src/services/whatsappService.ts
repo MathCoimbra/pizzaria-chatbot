@@ -15,6 +15,12 @@ export class WhatsappService {
       type: 'interactive',
       interactive: {
         type: 'button',
+        header: {
+          type: 'image',
+          image: {
+            link: `${process.env.WHATSAPP_MEDIA_BASE_URL}/pizzaria_welcome.png`,
+          },
+        },
         body: {
           text,
         },
@@ -162,6 +168,7 @@ export class WhatsappService {
   static async getOrderMessage(to: string): Promise<WhatsAppMessage> {
 
     let body;
+    let link;
     const userStateKey = `user${to}:state`;
     const userState = await redisClient.get(userStateKey);
 
@@ -172,15 +179,17 @@ export class WhatsappService {
     if (userState) {
       const userStateJson: UserState = JSON.parse(userState);
       body = userStateJson.step.toUpperCase() === "FOGAZZA_MENU" ? fogazzaBody : pizzaBody;
+      link = userStateJson.step.toUpperCase() === "FOGAZZA_MENU" ? `${process.env.WHATSAPP_MEDIA_BASE_URL}/fogazza_menu.png` : `${process.env.WHATSAPP_MEDIA_BASE_URL}/pizza_menu.png`;
     }
 
     return {
       messaging_product: 'whatsapp',
       to,
-      type: 'text',
-      text: {
-        body
-      }
+      type: 'image',
+      image: {
+        link,
+        caption: body,
+      },
     };
   }
 

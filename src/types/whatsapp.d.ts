@@ -68,6 +68,10 @@ export type WhatsAppMessage = {
   messaging_product: string,
   to: string;
   type: string;
+  image?: {
+    link: string | undefined;
+    caption: string | undefined;
+  };
   text?: {
     body?: string;
   },
