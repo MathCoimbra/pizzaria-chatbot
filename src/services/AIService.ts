@@ -1,10 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Order } from "../types/order";
+import { AILimitService } from "./AILimitService";
 
 export class AIService {
 
   // Método para processar o pedido de pizza
-  static async processOrder(userMessage: string, userState: string): Promise<any> {
+  static async processOrder(userMessage: string, userState: string, from?: string): Promise<any> {
+
+    // Verificar limite de chamadas à IA
+    if (from && await AILimitService.hasReachedLimit(from)) {
+      return { limitAchieved: true };
+    }
 
     if (process.env.MOCK_AI_PIZZA === "true") {
       return {
@@ -85,7 +91,12 @@ export class AIService {
 
     // Convertendo para JSON
     try {
-      return JSON.parse(cleanedResponse);
+      const parsedResponse = JSON.parse(cleanedResponse);
+      // Incrementar contador apenas após resposta bem-sucedida
+      if (from) {
+        await AILimitService.incrementCallCount(from);
+      }
+      return parsedResponse;
     } catch (error) {
       console.error("Erro ao converter resposta da IA para JSON:", error);
       throw new Error('Erro ao converter resposta da IA para JSON');
@@ -93,7 +104,12 @@ export class AIService {
   }
 
   // Método para editar o pedido de pizza
-  static async editOrder(userMessage: string, order: Order): Promise<any> {
+  static async editOrder(userMessage: string, order: Order, from?: string): Promise<any> {
+
+    // Verificar limite de chamadas à IA
+    if (from && await AILimitService.hasReachedLimit(from)) {
+      return { limitAchieved: true };
+    }
 
     if (process.env.MOCK_AI_EDIT === "true") {
       // Mock de edição: retorna o pedido sem alterações (ou com edição simples, se preferir)
@@ -140,7 +156,12 @@ export class AIService {
 
     // Convertendo para JSON
     try {
-      return JSON.parse(cleanedResponse);
+      const parsedResponse = JSON.parse(cleanedResponse);
+      // Incrementar contador apenas após resposta bem-sucedida
+      if (from) {
+        await AILimitService.incrementCallCount(from);
+      }
+      return parsedResponse;
     } catch (error) {
       console.error("Erro ao converter resposta da IA para JSON:", error);
       throw new Error("Erro ao converter resposta da IA para JSON");

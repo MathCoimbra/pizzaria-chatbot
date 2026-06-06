@@ -621,6 +621,16 @@ Obrigado pela preferência 🍕`
     };
   }
 
+  static async getContactChefMessage(to: string): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Parece que não estou conseguindo processar seu pedido 😢. Por favor, entre em contato com o chef para completar seu pedido: ${process.env.CHEF_NUMBER}`
+      }
+    };
+  }
 
   static async sendMessage(payload: WhatsAppMessage): Promise<void> {
     try {

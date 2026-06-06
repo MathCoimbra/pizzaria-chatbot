@@ -10,47 +10,47 @@ import { Order } from '../types/order';
 // serviço de envio da mensagem pelo whatsapp
 export class ChatbotService {
   static async processMessage(body: WhatsAppWebhookEvent, res: Response): Promise<void> {
+    // verifica se há entradas e mensagens válidas
+    const entry = body?.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const statuses = changes?.value?.statuses?.[0];
+    const messages = changes?.value?.messages?.[0];
+
+    if (!entry || !changes || !messages || statuses) {
+      console.log('Evento ignorado: Estrutura do corpo inválida ou sem mensagens.');
+      res.sendStatus(200); // responde com sucesso para evitar novas tentativas do whatsapp
+      return;
+    }
+
+    const messageId = messages.id;
+    if (!messageId) {
+      console.log('Evento ignorado: mensagem sem id.');
+      res.sendStatus(200);
+      return;
+    }
+
+    // validação para ignorar mensagens do bot e trazer somente mensagens externas
+    if (body.entry[0].changes[0].value.messages[0].from === process.env.BOT_NUMBER) {
+      console.log("Mensagem recebida do bot, ignorando...");
+      res.sendStatus(200);
+      return;
+    }
+    /* validar messageID pra evitar duplicidade nas mensagens caso tenha alguma indisponibilidade */
+    const alreadyProcessed = await redisClient.get(`msg:${messageId}`);
+    if (alreadyProcessed) {
+      res.sendStatus(200);
+      return;
+    }
+    await redisClient.set(`msg:${messageId}`, "1", "EX", 3600);
+
+    /* inicia o fluxo */
+    const from = messages.from;
+    const userText = messages.text?.body;
+    const name = changes.value.contacts?.[0]?.profile?.name;
+    const options = messages.interactive;
+    console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
+
     try {
-      // verifica se há entradas e mensagens válidas
-      const entry = body?.entry?.[0];
-      const changes = entry?.changes?.[0];
-      const statuses = changes?.value?.statuses?.[0];
-      const messages = changes?.value?.messages?.[0];
-
-      if (!entry || !changes || !messages || statuses) {
-        console.log('Evento ignorado: Estrutura do corpo inválida ou sem mensagens.');
-        res.sendStatus(200); // responde com sucesso para evitar novas tentativas do whatsapp
-        return;
-      }
-
-      const messageId = messages.id;
-      if (!messageId) {
-        console.log('Evento ignorado: mensagem sem id.');
-        res.sendStatus(200);
-        return;
-      }
-
-      // validação para ignorar mensagens do bot e trazer somente mensagens externas
-      if (body.entry[0].changes[0].value.messages[0].from === process.env.BOT_NUMBER) {
-        console.log("Mensagem recebida do bot, ignorando...");
-        res.sendStatus(200);
-        return;
-      }
-      /* validar messageID pra evitar duplicidade nas mensagens caso tenha alguma indisponibilidade */
-      const alreadyProcessed = await redisClient.get(`msg:${messageId}`);
-      if (alreadyProcessed) {
-        res.sendStatus(200);
-        return;
-      }
-      await redisClient.set(`msg:${messageId}`, "1", "EX", 3600);
-
-      /* inicia o fluxo */
-      const from = messages.from;
-      const userText = messages.text?.body;
-      const name = changes.value.contacts?.[0]?.profile?.name;
-      const options = messages.interactive;
-      console.log(`Mensagem recebida de ${name} com a mensagem: ${userText}`);
-
       // key para controle de estado do usuário
       const userStateKey = `user${from}:state`;
       const userState = await redisClient.get(userStateKey);
@@ -66,6 +66,9 @@ export class ChatbotService {
       }
     } catch (error: any) {
       console.error('Erro ao enviar a mensagem: ', error.response?.data || error.message);
+      await WhatsappService.sendMessage(await WhatsappService.getErrorMessage(from));
+      // Ainda retorna 200 para o WhatsApp (evita retry)
+      res.status(200).send('Erro ao processar solicação, mas mensagem enviada.');
       throw new Error('Ocorreu algum erro ao enviar a mensagem.');
     }
   }
@@ -217,8 +220,14 @@ export class ChatbotService {
       if (userStateJson.step.toUpperCase() === "ORDER_EDIT") {
 
         // IA do bot analisa e atualiza o pedido
-        const AIResponse: Order = await AIService.editOrder(userText, userStateJson.order);
+        const AIResponse: Order = await AIService.editOrder(userText, userStateJson.order, from);
         console.log("AIResponse editOrder", JSON.stringify(AIResponse, null, 2));
+
+        if (AIResponse.limitAchieved) {
+          await WhatsappService.sendMessage(await WhatsappService.getContactChefMessage(from));
+          res.status(200).send('Limite de edições atingido. Cliente orientado a contatar o chef.');
+          return;
+        }
 
         if (AIResponse.error) {
           await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
@@ -236,8 +245,14 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "PIZZA_MENU" || userStateJson.step.toUpperCase() === "PF_PIZZA_MENU") {
 
-        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
+        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step, from);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+        if (AIResponse.limitAchieved) {
+          await WhatsappService.sendMessage(await WhatsappService.getContactChefMessage(from));
+          res.status(200).send('Limite de processamento atingido. Cliente orientado a contatar o chef.');
+          return;
+        }
 
         if (AIResponse.error) {
           await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
@@ -321,8 +336,14 @@ export class ChatbotService {
 
       if (userStateJson.step.toUpperCase() === "FOGAZZA_MENU" || userStateJson.step.toUpperCase() === "PF_FOGAZZA_MENU") {
 
-        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step);
+        const AIResponse: Order = await AIService.processOrder(userText, userStateJson.step, from);
         console.log("AIResponse processOrder", JSON.stringify(AIResponse, null, 2));
+
+        if (AIResponse.limitAchieved) {
+          await WhatsappService.sendMessage(await WhatsappService.getContactChefMessage(from));
+          res.status(200).send('Limite de processamento atingido. Cliente orientado a contatar o chef.');
+          return;
+        }
 
         if (AIResponse.error) {
           await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));

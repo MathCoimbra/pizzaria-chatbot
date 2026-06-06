@@ -15,4 +15,5 @@ export type Order = {
   observacoes: string;
   resumo: string;
   error?: boolean;
+  limitAchieved: boolean;
 };
