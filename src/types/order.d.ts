@@ -16,7 +16,7 @@ export type Order = {
   resumo: string;
   error?: {
     unavailableFlavor?: boolean;
-    flavor?: [string];
+    flavor?: string[];
     unknown?: boolean;
   };
   limitAchieved: boolean;

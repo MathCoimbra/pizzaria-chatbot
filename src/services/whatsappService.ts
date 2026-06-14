@@ -621,7 +621,7 @@ Obrigado pela preferência 🍕`
     };
   }
 
-  static async getOrderUnavailableFlavorErrorMessage(to: string, unavailableFlavors: [string] | undefined): Promise<WhatsAppMessage> {
+  static async getOrderUnavailableFlavorErrorMessage(to: string, unavailableFlavors: string[] | undefined): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
       to,
