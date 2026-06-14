@@ -230,7 +230,11 @@ export class ChatbotService {
         }
 
         if (AIResponse.error) {
-          await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
+          if (AIResponse.error.unavailableFlavor) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderUnavailableFlavorErrorMessage(from, AIResponse.error.flavor));
+          } else if (AIResponse.error.unknown) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderUnknownErrorMessage(from));
+          }
           res.status(200).send('Mensagem de erro ao editar pedido enviada com sucesso!');
           return;
         }
@@ -255,7 +259,11 @@ export class ChatbotService {
         }
 
         if (AIResponse.error) {
-          await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
+          if (AIResponse.error.unavailableFlavor) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderUnavailableFlavorErrorMessage(from, AIResponse.error.flavor));
+          } else if (AIResponse.error.unknown) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderUnknownErrorMessage(from));
+          }
           res.status(200).send('Mensagem de erro ao processar pedido enviada com sucesso!');
           return;
         }
@@ -346,7 +354,11 @@ export class ChatbotService {
         }
 
         if (AIResponse.error) {
-          await WhatsappService.sendMessage(await WhatsappService.getOrderErrorMessage(from));
+          if (AIResponse.error.unavailableFlavor) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderUnavailableFlavorErrorMessage(from, AIResponse.error.flavor));
+          } else if (AIResponse.error.unknown) {
+            await WhatsappService.sendMessage(await WhatsappService.getOrderUnknownErrorMessage(from));
+          }
           res.status(200).send('Mensagem de erro ao processar pedido enviada com sucesso!');
           return;
         }

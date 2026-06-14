@@ -14,6 +14,10 @@ export type Order = {
   }[];
   observacoes: string;
   resumo: string;
-  error?: boolean;
+  error?: {
+    unavailableFlavor?: boolean;
+    flavor?: [string];
+    unknown?: boolean;
+  };
   limitAchieved: boolean;
 };

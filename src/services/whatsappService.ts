@@ -610,7 +610,7 @@ Obrigado pela preferência 🍕`
     };
   }
 
-  static async getOrderErrorMessage(to: string): Promise<WhatsAppMessage> {
+  static async getOrderUnknownErrorMessage(to: string): Promise<WhatsAppMessage> {
     return {
       messaging_product: 'whatsapp',
       to,
@@ -620,6 +620,22 @@ Obrigado pela preferência 🍕`
       }
     };
   }
+
+  static async getOrderUnavailableFlavorErrorMessage(to: string, unavailableFlavors: [string] | undefined): Promise<WhatsAppMessage> {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: {
+        body: `Desculpe, não temos os seguintes itens no momento:
+
+${unavailableFlavors?.map(item => `- ${item.charAt(0).toUpperCase() + item.slice(1)}`).join('\n')}
+
+Por favor, escolha outro se possível.`
+      }
+    };
+  }
+
 
   static async getContactChefMessage(to: string): Promise<WhatsAppMessage> {
     return {
