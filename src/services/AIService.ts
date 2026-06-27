@@ -66,6 +66,27 @@ export class AIService {
       return { limitAchieved: true };
     }
 
+    if (process.env.MOCK_AI_PIZZA_MODA_CLIENTE === "true") {
+      return {
+        pizza: [
+          {
+            sabor: "moda do cliente",
+            tamanho: "grande",
+            borda: "catupiry",
+            ingredientes: "mussarela, tomate, orégano"
+          }
+        ],
+        fogazza: [],
+        bebida: [
+          {
+            tipo: "coca"
+          }
+        ],
+        observacoes: "Pedido simulado",
+        resumo: "Pizza moda do cliente grande com borda catupiry e ingredientes mussarela, tomate, orégano + coca"
+      };
+    }
+
     if (process.env.MOCK_AI_PIZZA === "true") {
       return {
         pizza: [
@@ -123,6 +144,7 @@ INSTRUÇÕES IMPORTANTES:
 - APENAS use itens com "available": true
 - Se um item com "available": false for solicitado, REJEITE e retorne: {"error": {"unavailableFlavor": true, "flavor": "array do sabor indisponível"}}
 - Se não conseguir identificar o sabor exato, procure por similares disponíveis
+- Se o tamanho não for especificado (broto, pequena, média ou variações), considere como "grande" por padrão
 - Retorne apenas um JSON estruturado com os seguintes campos:
   - \`pizza\`: Uma lista de objetos contendo \`sabor\`, \`tamanho\`, \`borda\` (somente se for meia a meia, \`sabor\` será uma lista com 2 sabores), e se o sabor for "moda do cliente", inclua também a propriedade \`ingredientes\` (strings de ingredientes específicos dessa pizza mencionados pelo usuário)
   - \`bebida\`: Uma lista de objetos contendo \`tipo\`

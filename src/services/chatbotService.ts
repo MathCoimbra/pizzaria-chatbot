@@ -273,12 +273,6 @@ export class ChatbotService {
         if (AIResponse.pizza && AIResponse.pizza.length > 0) {
           for (const item of AIResponse.pizza) {
 
-            if (!item.tamanho || !item.sabor) {
-              await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
-              res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
-              return;
-            }
-
             if (Array.isArray(item.sabor) && item.sabor.some((flavor: string) => findBestMatch(flavor, WhatsappService.getFlavor()) === "moda_cliente")
             ) {
               await WhatsappService.sendMessage(await WhatsappService.getClientFlavorErrorMessage(from));
@@ -289,8 +283,8 @@ export class ChatbotService {
             if (typeof item.sabor === "string" && findBestMatch(item.sabor, WhatsappService.getFlavor()) === "moda_cliente") {
 
               if (!item.ingredientes) {
-                await WhatsappService.sendMessage(await WhatsappService.getFlavorSizeErrorMessage(from));
-                res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
+                await WhatsappService.sendMessage(await WhatsappService.getUnavailableFlavorMessage(from));
+                res.status(200).send('Mensagem de falta de ingredientes enviada com sucesso!');
                 return;
               } else {
 
@@ -368,8 +362,8 @@ export class ChatbotService {
         if (AIResponse.fogazza && AIResponse.fogazza.length > 0) {
           for (const item of AIResponse.fogazza) {
             if (!item.sabor) {
-              await WhatsappService.sendMessage(await WhatsappService.getSizeErrorMessage(from));
-              res.status(200).send('Mensagem de falta de tamanho enviada com sucesso!');
+              await WhatsappService.sendMessage(await WhatsappService.getMenuMessage(from));
+              res.status(200).send('Mensagem de pedido enviada com sucesso!');
               return;
             }
           }
